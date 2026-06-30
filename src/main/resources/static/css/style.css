@@ -570,3 +570,62 @@ button:hover {
 .activities-table tbody tr:last-child td {
     border-bottom: none;
 }
+
+
+/* ===== Mobile Responsiveness ===== */
+@media (max-width: 768px) {
+    body {
+        overflow: auto;
+        height: auto;
+    }
+    .app-container {
+        flex-direction: column;
+        height: auto;
+    }
+    .sidebar {
+        width: 100%;
+        min-width: unset;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        max-height: 35vh; /* Keep it relatively compact */
+        overflow-y: auto;
+    }
+    .main-content {
+        padding: 16px;
+        overflow-y: visible;
+    }
+    .athlete-header {
+        align-items: center;
+        text-align: center;
+        flex-direction: column;
+    }
+    .header-row {
+        width: 100%;
+        justify-content: center;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .athlete-badges {
+        justify-content: center;
+    }
+    .last-run-stats {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .activity-filters {
+        flex-direction: column;
+    }
+    .activity-filters input[type="text"] {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
