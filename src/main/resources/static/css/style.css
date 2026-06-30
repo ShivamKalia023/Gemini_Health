@@ -629,3 +629,260 @@ button:hover {
     }
 }
 
+
+
+/* ===== 3-Column Layout Overrides ===== */
+.app-container {
+    display: grid;
+    grid-template-columns: 280px 1fr 280px;
+    gap: 0;
+    height: calc(100vh - 60px);
+}
+
+.top-nav {
+    height: 60px;
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+}
+
+.top-nav .brand h2 {
+    color: var(--color-orange);
+    font-size: 18px;
+    margin: 0;
+}
+
+.top-nav .subtitle {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.admin-badge {
+    background-color: var(--color-green);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.leaderboard-panel {
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.leaderboard-panel h3 {
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.panel-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+.leaderboard-item .rank {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--color-orange);
+    min-width: 20px;
+}
+.leaderboard-item img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+.leaderboard-item-info {
+    flex-grow: 1;
+}
+.leaderboard-item-info h4 {
+    font-size: 13px;
+    margin: 0;
+}
+.leaderboard-item-info span {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+.leaderboard-item .score {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.feed-panel {
+    background-color: var(--bg-body);
+    padding: 24px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.challenge-section {
+    margin-bottom: 24px;
+}
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.challenge-card {
+    background: linear-gradient(135deg, var(--color-orange), #ff7e5f);
+    color: white;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.challenge-card h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+}
+.challenge-card p {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.9;
+}
+.challenge-del-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+.challenge-del-btn:hover {
+    background: rgba(255,255,255,0.4);
+}
+
+.global-feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.feed-item {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 6px;
+    display: flex;
+    gap: 16px;
+}
+.feed-item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #f1f5f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+}
+.feed-item-content {
+    flex-grow: 1;
+}
+.feed-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+.feed-athlete {
+    font-weight: 600;
+    font-size: 13px;
+}
+.feed-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+.feed-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+.feed-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.feed-stats span strong {
+    color: var(--text-primary);
+}
+
+.athlete-dashboard-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    min-height: 100%;
+    background-color: var(--bg-body);
+    padding: 24px;
+    z-index: 10;
+}
+
+.close-dashboard-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    margin-bottom: 16px;
+    padding: 0;
+}
+.close-dashboard-btn:hover {
+    color: var(--color-orange);
+}
+
+.form-box {
+    background: white;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.add-btn {
+    background: transparent;
+    border: 1px solid var(--color-orange);
+    color: var(--color-orange);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+.add-btn:hover {
+    background: var(--color-orange);
+    color: white;
+}
+
+/* Mobile Overrides Update */
+@media (max-width: 1024px) {
+    .app-container {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    .leaderboard-panel, .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .feed-panel {
+        order: -1; /* Show feed first on mobile */
+    }
+}
+

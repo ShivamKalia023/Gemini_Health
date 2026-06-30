@@ -14,7 +14,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.beans.factory.annotation.Value;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -45,6 +48,9 @@ public class AthleteController {
 
     @Autowired
     private LogCaptureService log;
+
+    @Value("${admin.strava-id:}")
+    private String adminStravaId;
 
     @GetMapping
     public ResponseEntity<List<AthleteProfile>> getAllAthletes() {
@@ -136,7 +142,8 @@ public class AthleteController {
     @GetMapping("/strava/callback")
     public RedirectView stravaCallback(@RequestParam(required = false) String code, 
                                        @RequestParam(required = false) String error,
-                                       HttpServletRequest request) {
+                                       HttpServletRequest request,
+                                       HttpServletResponse response) {
         if (error != null) {
             return new RedirectView("/?strava_error=" + URLEncoder.encode(error, StandardCharsets.UTF_8));
         }
@@ -147,6 +154,15 @@ public class AthleteController {
         try {
             String baseUrl = getBaseUrl(request);
             AthleteProfile profile = stravaService.handleAuthorizationCallback(code, baseUrl);
+            
+            // Check if admin
+            if (adminStravaId != null && !adminStravaId.isEmpty() && adminStravaId.equals(profile.getStravaId())) {
+                Cookie adminCookie = new Cookie("admin_token", "true");
+                adminCookie.setPath("/");
+                adminCookie.setMaxAge(60 * 60 * 24 * 30); // 30 days
+                response.addCookie(adminCookie);
+            }
+            
             return new RedirectView("/?strava_success=true&name=" + URLEncoder.encode(profile.getName(), StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.error("Strava callback error: " + e.getMessage());
@@ -199,7 +215,10 @@ public class AthleteController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteAthlete(@PathVariable Long id) {
+    public ResponseEntity<?> deleteAthlete(@PathVariable Long id, @CookieValue(value = "admin_token", required = false) String adminToken) {
+        if (!"true".equals(adminToken)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin access required to delete profiles."));
+        }
         try {
             return athleteRepository.findById(id)
                     .map(athlete -> {
