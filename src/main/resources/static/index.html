@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Health Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Gemini Health</h2>
+                <span class="subtitle">Athlete Performance Tracker</span>
+            </div>
+
+            <div class="profiles-section">
+                <h3>Select Athlete</h3>
+                <div id="profiles-list" class="profiles-list">
+                    <div class="loading-text">Loading athletes...</div>
+                </div>
+            </div>
+
+            <div class="import-section">
+                <h3>Import Athlete / Data</h3>
+                <form id="url-import-form" class="import-form">
+                    <input type="text" id="strava-url-input" placeholder="Strava profile URL or ID" required>
+                    <button type="submit">Import Profile</button>
+                </form>
+                <div class="file-upload-container">
+                    <label class="file-upload-label">
+                        <span>Upload CSV (Bulk History) or GPX (Activity)</span>
+                        <input type="file" id="file-import-input" accept=".csv,.gpx">
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Main Panel -->
+        <main class="main-content">
+            
+            <div id="empty-state" class="empty-state hidden">
+                <div class="empty-message">
+                    <h3>No Athlete Selected</h3>
+                    <p>Select an athlete from the sidebar, or import one using a Strava URL or file upload.</p>
+                </div>
+            </div>
+
+            <div id="dashboard-content" class="dashboard-content">
+                
+                <!-- Import Success Banner (hidden by default) -->
+                <div id="import-success-banner" class="import-banner hidden">
+                    <p id="import-banner-text">File imported successfully.</p>
+                    <button class="close-banner" id="close-banner-btn">&times;</button>
+                </div>
+
+                <!-- Athlete Header -->
+                <header class="athlete-header">
+                    <img id="athlete-avatar" src="" alt="Avatar" class="athlete-avatar">
+                    <div class="athlete-info">
+                        <div class="header-row">
+                            <h1 id="athlete-name">Athlete Name</h1>
+                            <button id="delete-profile-btn" class="delete-btn">Delete Profile</button>
+                        </div>
+                        <p class="athlete-location"><span id="athlete-city">City</span>, <span id="athlete-state">State</span>, <span id="athlete-country">Country</span></p>
+                        <div class="athlete-badges">
+                            <span class="badge" id="athlete-sport">Sport</span>
+                            <span class="badge" id="athlete-goal">Goal: 0 km/wk</span>
+                            <span class="badge hidden" id="athlete-ftp">FTP: -- W</span>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Tabs -->
+                <nav class="tabs-nav">
+                    <button class="tab-btn active" data-tab="overview">Overview</button>
+                    <button class="tab-btn" data-tab="activities">Activities</button>
+                </nav>
+
+                <div class="tab-panels">
+                    
+                    <!-- Overview Tab -->
+                    <div class="tab-panel active" id="panel-overview">
+
+                        <!-- Last Running Activity Card -->
+                        <div class="last-run-card" id="last-run-card">
+                            <h3>Last Running Activity</h3>
+                            <div id="last-run-name" class="run-name">--</div>
+                            <div id="last-run-date" class="run-date">--</div>
+                            <div class="last-run-stats">
+                                <div class="last-run-stat">
+                                    <span class="label">Distance</span>
+                                    <span class="value" id="last-run-distance">-- <span class="unit">km</span></span>
+                                </div>
+                                <div class="last-run-stat">
+                                    <span class="label">Duration</span>
+                                    <span class="value" id="last-run-duration">--</span>
+                                </div>
+                                <div class="last-run-stat">
+                                    <span class="label">Avg Pace</span>
+                                    <span class="value" id="last-run-pace">-- <span class="unit">/ km</span></span>
+                                </div>
+                                <div class="last-run-stat">
+                                    <span class="label">Avg Run Duration</span>
+                                    <span class="value" id="last-run-avg-duration">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Cards -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h4>Weekly Mileage</h4>
+                                <p class="stat-value"><span id="stat-weekly-dist">0.0</span> <span class="unit">km</span></p>
+                                <div class="progress-bar-container">
+                                    <div id="stat-goal-progress" class="progress-bar" style="width: 0%"></div>
+                                </div>
+                                <span class="stat-caption" id="stat-goal-text">0% of weekly goal</span>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Fitness (CTL)</h4>
+                                <p class="stat-value" id="stat-fitness">0</p>
+                                <span class="stat-caption">42-day training load</span>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Fatigue (ATL)</h4>
+                                <p class="stat-value" id="stat-fatigue">0</p>
+                                <span class="stat-caption">7-day training load</span>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Form (TSB)</h4>
+                                <p class="stat-value" id="stat-form">0</p>
+                                <span class="stat-caption" id="stat-form-status">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Charts -->
+                        <div class="charts-grid">
+                            <div class="chart-card">
+                                <h3>Training Load Timeline</h3>
+                                <div class="chart-container">
+                                    <canvas id="performanceChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="chart-card">
+                                <h3>Heart Rate Zones</h3>
+                                <div class="chart-container">
+                                    <canvas id="zonesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activities Tab -->
+                    <div class="tab-panel" id="panel-activities">
+                        <div class="activity-filters">
+                            <input type="text" id="activity-search" placeholder="Search activities...">
+                            <select id="activity-type-filter">
+                                <option value="all">All Sports</option>
+                                <option value="run">Running</option>
+                                <option value="ride">Cycling</option>
+                                <option value="swim">Swimming</option>
+                                <option value="gym">Gym / Strength</option>
+                            </select>
+                        </div>
+                        <div class="table-container">
+                            <table class="activities-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Distance</th>
+                                        <th>Time</th>
+                                        <th>Elevation</th>
+                                        <th>Avg HR</th>
+                                        <th>TRIMP</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activities-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

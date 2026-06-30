@@ -1,0 +1,56 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Build Output
+target/
+build/
+dist/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+.m2/
+
+# Database
+*.db
+*.db.*
+*.trace.db
+data/
+
+# Environment Variables & Secrets (DO NOT COMMIT)
+.env
+.env.local
+.env.*.local
+application-local.properties
+application-prod.properties
+
+# System Files
+.DS_Store
+Thumbs.db
+*.log
+
+# Error Logs
+hs_err_pid*.log
+
+# Node modules (if using frontend build tools)
+node_modules/
+npm-debug.log
+
+# OS Specific
+.vscode/
+.idea
+*.swp
+
