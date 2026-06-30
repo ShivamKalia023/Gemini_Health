@@ -27,11 +27,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteProfileBtn = document.getElementById('delete-profile-btn');
     const fileImportInput = document.getElementById('file-import-input');
 
+    // Ticker Elements
+    const lastUpdatedTicker = document.getElementById('last-updated-ticker');
+
     let currentAthleteId = null;
 
     if (isAdmin) {
         adminControls.classList.remove('hidden');
         document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+    }
+
+    function updateTickerTime() {
+        if (!lastUpdatedTicker) return;
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const text = `LAST UPDATED: ${timeString}`;
+        // Duplicate text many times to ensure seamless infinite scroll
+        let html = '';
+        for (let i = 0; i < 10; i++) {
+            html += `<span>${text}</span>`;
+        }
+        lastUpdatedTicker.innerHTML = html;
     }
 
     async function loadLeaderboard() {
@@ -252,5 +268,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Startup
     loadLeaderboard();
-    loadGlobalFeed();
+    loadGlobalFeed().then(() => updateTickerTime());
 });
