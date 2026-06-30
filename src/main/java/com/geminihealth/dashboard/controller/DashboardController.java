@@ -53,6 +53,7 @@ public class DashboardController {
 
             Map<String, Object> entry = new HashMap<>();
             entry.put("athlete", athlete);
+            entry.put("totalActivities", activities.size());
             if (lastRun != null) {
                 entry.put("lastRunDistance", lastRun.getDistance());
                 entry.put("lastRunDate", lastRun.getStartDate());

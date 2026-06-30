@@ -10,32 +10,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // DOM Elements
     const adminControls = document.getElementById('admin-controls');
-    const addChallengeBtn = document.getElementById('add-challenge-btn');
-    const addChallengeForm = document.getElementById('add-challenge-form');
-    const saveChallengeBtn = document.getElementById('save-challenge-btn');
-    const cancelChallengeBtn = document.getElementById('cancel-challenge-btn');
-    const challengesList = document.getElementById('challenges-list');
-    
     const leaderboardList = document.getElementById('leaderboard-list');
     const globalFeedList = document.getElementById('global-feed-list');
-    const profilesList = document.getElementById('profiles-list');
+    const stravaConnectBtn = document.getElementById('strava-connect-btn');
     
+    // Champion Elements
+    const championBanner = document.getElementById('champion-banner');
+    const championAvatar = document.getElementById('champion-avatar');
+    const championName = document.getElementById('champion-name');
+    const championDist = document.getElementById('champion-dist');
+    const championActs = document.getElementById('champion-acts');
+
+    // Overlay Elements
     const athleteDashboardOverlay = document.getElementById('athlete-dashboard-overlay');
     const closeDashboardBtn = document.getElementById('close-dashboard-btn');
     const deleteProfileBtn = document.getElementById('delete-profile-btn');
-    
-    const stravaConnectBtn = document.getElementById('strava-connect-btn');
     const fileImportInput = document.getElementById('file-import-input');
 
     let currentAthleteId = null;
 
-    // Admin UI Setup
     if (isAdmin) {
         adminControls.classList.remove('hidden');
         document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
     }
-
-    // --- API Calls & Rendering ---
 
     async function loadLeaderboard() {
         try {
@@ -43,29 +40,47 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             
             if (data.length === 0) {
-                leaderboardList.innerHTML = '<div class="loading-text">No athletes found.</div>';
+                leaderboardList.innerHTML = '<tr><td colspan="4" class="loading-text">No athletes found.</td></tr>';
                 return;
             }
             
+            // 1. Populate Champion Banner
+            const champ = data[0];
+            championAvatar.src = champ.athlete.avatarUrl || '';
+            championName.textContent = champ.athlete.name;
+            championDist.innerHTML = `${champ.lastRunDistance ? champ.lastRunDistance.toFixed(1) : '0.0'} <span class="unit">km</span>`;
+            championActs.textContent = champ.totalActivities || 0;
+            championBanner.classList.remove('hidden');
+
+            // 2. Populate Leaderboard Table
             leaderboardList.innerHTML = '';
             data.forEach((entry, idx) => {
+                const rankNum = String(idx + 1).padStart(2, '0');
+                const isTop = idx === 0 ? 'top-rank' : '';
                 const dist = entry.lastRunDistance ? entry.lastRunDistance.toFixed(1) : '0.0';
-                const el = document.createElement('div');
-                el.className = 'leaderboard-item';
-                el.innerHTML = `
-                    <div class="rank">#${idx + 1}</div>
-                    <img src="${entry.athlete.avatarUrl || ''}" alt="">
-                    <div class="leaderboard-item-info">
-                        <h4>${entry.athlete.name}</h4>
-                        <span>${entry.athlete.primarySport}</span>
-                    </div>
-                    <div class="score">${dist} <span class="unit" style="font-size:10px;color:gray">km</span></div>
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="rank-cell ${isTop}">${rankNum}</td>
+                    <td>
+                        <div class="athlete-cell">
+                            <img src="${entry.athlete.avatarUrl || ''}" alt="">
+                            <div class="athlete-cell-info">
+                                <span class="athlete-cell-name">${entry.athlete.name}</span>
+                                <span class="athlete-cell-status">Strava Connected · ${entry.athlete.city || 'Unknown'}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="acts-cell">${entry.totalActivities || 0}</td>
+                    <td class="value-cell">${dist} km</td>
                 `;
-                leaderboardList.appendChild(el);
+                tr.addEventListener('click', () => openAthleteDashboard(entry.athlete));
+                leaderboardList.appendChild(tr);
             });
+
         } catch (e) {
             console.error(e);
-            leaderboardList.innerHTML = '<div class="loading-text">Failed to load.</div>';
+            leaderboardList.innerHTML = '<tr><td colspan="4" class="loading-text">Failed to load.</td></tr>';
         }
     }
 
@@ -81,26 +96,35 @@ document.addEventListener('DOMContentLoaded', () => {
             
             globalFeedList.innerHTML = '';
             data.forEach(act => {
-                const date = new Date(act.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                const icon = act.type.toLowerCase().includes('run') ? '🏃' : (act.type.toLowerCase().includes('ride') ? '🚴' : '💪');
+                // Determine 'time ago' string roughly
+                const actDate = new Date(act.startDate);
+                const diffTime = Math.abs(new Date() - actDate);
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                const timeAgo = diffDays > 0 ? `${diffDays}d ago` : 'Today';
+
                 const dist = act.distance ? act.distance.toFixed(1) + ' km' : '';
-                const time = formatDuration(act.movingTime || 0);
+                const durH = Math.floor(act.movingTime / 3600);
+                const durM = Math.floor((act.movingTime % 3600) / 60);
+                const timeStr = durH > 0 ? `${durH}h ${durM}m` : `${durM}m`;
+                
+                const avatar = act.athlete && act.athlete.avatarUrl ? `<img src="${act.athlete.avatarUrl}" style="width:32px;height:32px;border-radius:4px;object-fit:cover;">` : `<div style="width:32px;height:32px;background:#ddd;border-radius:4px;"></div>`;
                 
                 const el = document.createElement('div');
                 el.className = 'feed-item';
                 el.innerHTML = `
-                    <div class="feed-item-icon">${icon}</div>
+                    <div style="margin-right: 12px;">${avatar}</div>
                     <div class="feed-item-content">
-                        <div class="feed-header">
-                            <span class="feed-athlete">${act.athlete ? act.athlete.name : 'Unknown'}</span>
-                            <span class="feed-time">${date}</span>
+                        <div class="feed-title" style="margin-bottom: 4px;">
+                            <strong>${act.athlete ? act.athlete.name : 'Unknown'}</strong> completed ${dist} · ${act.name}
                         </div>
-                        <div class="feed-title">${act.name}</div>
                         <div class="feed-stats">
-                            ${dist ? `<span><strong>${dist}</strong> Distance</span>` : ''}
-                            <span><strong>${time}</strong> Time</span>
-                            ${act.trimp ? `<span><strong>${act.trimp}</strong> TRIMP</span>` : ''}
+                            <span>${timeStr}</span>
+                            ${act.totalElevationGain ? `<span>· ${Math.round(act.totalElevationGain)}m</span>` : ''}
+                            <span>· ${timeAgo}</span>
                         </div>
+                    </div>
+                    <div class="feed-item-icon" style="background:transparent;">
+                        ${act.type.toLowerCase().includes('run') ? '🏃' : (act.type.toLowerCase().includes('ride') ? '🚴' : '💪')}
                     </div>
                 `;
                 globalFeedList.appendChild(el);
@@ -111,80 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadChallenges() {
-        try {
-            const res = await fetch('/api/dashboard/challenges');
-            const data = await res.json();
-            
-            if (data.length === 0) {
-                challengesList.innerHTML = '<div class="loading-text">No upcoming challenges.</div>';
-                return;
-            }
-            
-            challengesList.innerHTML = '';
-            data.forEach(c => {
-                const el = document.createElement('div');
-                el.className = 'challenge-card';
-                let delBtn = isAdmin ? `<button class="challenge-del-btn" data-id="${c.id}">Delete</button>` : '';
-                
-                el.innerHTML = `
-                    <div>
-                        <h4>${c.title}</h4>
-                        <p>${c.description || ''}</p>
-                    </div>
-                    ${delBtn}
-                `;
-                challengesList.appendChild(el);
-            });
-            
-            if (isAdmin) {
-                document.querySelectorAll('.challenge-del-btn').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        const id = e.target.dataset.id;
-                        if(confirm('Delete challenge?')) {
-                            await fetch(`/api/challenges/${id}`, { method: 'DELETE' });
-                            loadChallenges();
-                        }
-                    });
-                });
-            }
-        } catch(e) {
-            console.error(e);
-            challengesList.innerHTML = '<div class="loading-text">Failed to load.</div>';
-        }
-    }
-
-    async function loadAthletes() {
-        try {
-            const res = await fetch('/api/athletes');
-            const data = await res.json();
-            
-            if (data.length === 0) {
-                profilesList.innerHTML = '<div class="loading-text">No athletes yet.</div>';
-                return;
-            }
-            
-            profilesList.innerHTML = '';
-            data.forEach(a => {
-                const item = document.createElement('div');
-                item.className = 'profile-item';
-                item.innerHTML = `
-                    <img src="${a.avatarUrl || ''}" alt="" class="profile-item-avatar">
-                    <div class="profile-item-info">
-                        <span class="profile-item-name">${a.name}</span>
-                        <span class="profile-item-sport">${a.primarySport}</span>
-                    </div>`;
-                item.addEventListener('click', () => openAthleteDashboard(a));
-                profilesList.appendChild(item);
-            });
-        } catch(e) {
-            console.error(e);
-            profilesList.innerHTML = '<div class="loading-text">Failed to load.</div>';
-        }
-    }
-
-    // --- Athlete Dashboard ---
-
     async function openAthleteDashboard(athlete) {
         currentAthleteId = athlete.id;
         document.getElementById('athlete-avatar').src = athlete.avatarUrl || '';
@@ -193,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('athlete-state').textContent = athlete.state || '';
         document.getElementById('athlete-country').textContent = athlete.country || '';
 
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         athleteDashboardOverlay.classList.remove('hidden');
 
         // Fetch Activities & Performance
@@ -254,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`/api/athletes/${currentAthleteId}`, { method: 'DELETE' });
                 if (res.ok) {
                     athleteDashboardOverlay.classList.add('hidden');
-                    loadAthletes();
                     loadLeaderboard();
                     loadGlobalFeed();
                 } else {
@@ -265,34 +215,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (addChallengeBtn) {
-        addChallengeBtn.addEventListener('click', () => addChallengeForm.classList.remove('hidden'));
-        cancelChallengeBtn.addEventListener('click', () => addChallengeForm.classList.add('hidden'));
-        saveChallengeBtn.addEventListener('click', async () => {
-            const title = document.getElementById('challenge-title').value;
-            const desc = document.getElementById('challenge-desc').value;
-            if (!title) return alert('Title required');
-            
-            const res = await fetch('/api/challenges', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, description: desc })
-            });
-            if (res.ok) {
-                addChallengeForm.classList.add('hidden');
-                document.getElementById('challenge-title').value = '';
-                document.getElementById('challenge-desc').value = '';
-                loadChallenges();
-            } else {
-                alert('Failed to add challenge');
-            }
-        });
-    }
-
     fileImportInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file || !currentAthleteId) {
-            alert("Please open an athlete's dashboard first to upload a file.");
             fileImportInput.value = '';
             return;
         }
@@ -317,17 +242,15 @@ document.addEventListener('DOMContentLoaded', () => {
         fileImportInput.value = '';
     });
 
-    function formatDuration(seconds) {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        if (h > 0) return `${h}h ${m}m`;
-        return `${m}m ${s}s`;
-    }
+    // Handle time filters (Visual only for now)
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+        });
+    });
 
     // Startup
     loadLeaderboard();
-    loadChallenges();
     loadGlobalFeed();
-    loadAthletes();
 });
