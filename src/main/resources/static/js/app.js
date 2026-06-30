@@ -46,8 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const importBannerText = document.getElementById('import-banner-text');
     const closeBannerBtn = document.getElementById('close-banner-btn');
 
-    const urlImportForm = document.getElementById('url-import-form');
-    const stravaUrlInput = document.getElementById('strava-url-input');
+    const stravaConnectBtn = document.getElementById('strava-connect-btn');
     const fileImportInput = document.getElementById('file-import-input');
 
     const activitySearch = document.getElementById('activity-search');
@@ -314,25 +313,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---- Import Handlers ----
 
-    async function importAthleteProfile(url) {
-        try {
-            const res = await fetch('/api/athletes/import', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url })
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Server error');
-            }
-            const athlete = await res.json();
-            showImportBanner(`Profile "${athlete.name}" imported successfully with training data.`);
-            await fetchAthletes(athlete.id);
-            stravaUrlInput.value = '';
-        } catch (e) {
-            alert(`Import failed: ${e.message}`);
-        }
-    }
+    // Strava logic is handled via redirect now
+
 
     async function uploadFile(file) {
         const name = prompt('Enter athlete name to associate this upload (will create new if not exists):');
@@ -469,10 +451,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    urlImportForm.addEventListener('submit', e => {
-        e.preventDefault();
-        if (stravaUrlInput.value) importAthleteProfile(stravaUrlInput.value);
-    });
+    if (stravaConnectBtn) {
+        stravaConnectBtn.addEventListener('click', () => {
+            window.location.href = '/api/athletes/strava/login';
+        });
+    }
 
     fileImportInput.addEventListener('change', e => {
         const file = e.target.files[0];
@@ -483,6 +466,17 @@ document.addEventListener('DOMContentLoaded', () => {
     activityTypeFilter.addEventListener('change', filterAndRenderActivities);
     deleteProfileBtn.addEventListener('click', deleteAthlete);
     closeBannerBtn.addEventListener('click', () => importBanner.classList.add('hidden'));
+
+    // Check for success param in URL after Strava redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('strava_success') === 'true') {
+        const name = urlParams.get('name') || 'Athlete';
+        showImportBanner(`Strava profile "${name}" connected successfully!`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('strava_error')) {
+        showImportBanner(`Strava connection failed: ${urlParams.get('strava_error')}`, true);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
     // ---- Startup ----
     fetchAthletes();

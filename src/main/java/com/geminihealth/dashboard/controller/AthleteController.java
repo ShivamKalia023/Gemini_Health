@@ -13,6 +13,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.view.RedirectView;
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import java.util.HashMap;
 import java.util.List;
@@ -104,19 +109,48 @@ public class AthleteController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/import")
-    public ResponseEntity<?> importAthlete(@RequestBody Map<String, String> request) {
-        String url = request.get("url");
-        if (url == null || url.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "URL parameter is required"));
+    private String getBaseUrl(HttpServletRequest request) {
+        String scheme = request.getScheme();             // http
+        String serverName = request.getServerName();     // hostname.com
+        int serverPort = request.getServerPort();        // 80
+        String contextPath = request.getContextPath();   // /mywebapp
+
+        // Reconstruct original requesting URL
+        StringBuilder url = new StringBuilder();
+        url.append(scheme).append("://").append(serverName);
+
+        if (serverPort != 80 && serverPort != 443) {
+            url.append(":").append(serverPort);
         }
+        url.append(contextPath);
+        return url.toString();
+    }
+
+    @GetMapping("/strava/login")
+    public RedirectView stravaLogin(HttpServletRequest request) {
+        String baseUrl = getBaseUrl(request);
+        String authUrl = stravaService.getAuthorizationUrl(baseUrl);
+        return new RedirectView(authUrl);
+    }
+
+    @GetMapping("/strava/callback")
+    public RedirectView stravaCallback(@RequestParam(required = false) String code, 
+                                       @RequestParam(required = false) String error,
+                                       HttpServletRequest request) {
+        if (error != null) {
+            return new RedirectView("/?strava_error=" + URLEncoder.encode(error, StandardCharsets.UTF_8));
+        }
+        if (code == null) {
+            return new RedirectView("/?strava_error=No+code+provided");
+        }
+        
         try {
-            AthleteProfile profile = stravaService.importAthleteFromUrl(url);
-            return ResponseEntity.ok(profile);
+            String baseUrl = getBaseUrl(request);
+            AthleteProfile profile = stravaService.handleAuthorizationCallback(code, baseUrl);
+            return new RedirectView("/?strava_success=true&name=" + URLEncoder.encode(profile.getName(), StandardCharsets.UTF_8));
         } catch (Exception e) {
-            log.error("Error importing athlete from URL " + url + ": " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
+            log.error("Strava callback error: " + e.getMessage());
+            return new RedirectView("/?strava_error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         }
     }
 

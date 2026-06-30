@@ -1,14 +1,21 @@
 package com.geminihealth.dashboard.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.geminihealth.dashboard.model.Activity;
 import com.geminihealth.dashboard.model.AthleteProfile;
 import com.geminihealth.dashboard.repository.ActivityRepository;
 import com.geminihealth.dashboard.repository.AthleteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,163 +36,181 @@ public class StravaService implements CommandLineRunner {
     @Autowired
     private LogCaptureService log;
 
+    @Value("${strava.client-id:}")
+    private String clientId;
+
+    @Value("${strava.client-secret:}")
+    private String clientSecret;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
     @Override
     public void run(String... args) throws Exception {
-        // Pre-populate database with default archetypes if empty
         if (athleteRepository.count() == 0) {
-            log.info("Database is empty. Pre-loading default athlete archetypes (Runner, Cyclist, Hybrid)...");
+            log.info("Database is empty. Pre-loading default athlete archetypes...");
             createDefaultProfiles();
             log.info("Default archetypes loaded successfully.");
         }
     }
 
-    /**
-     * Parses a Strava profile link, extracts athlete identifier, and imports/simulates the athlete profile.
-     */
-    public AthleteProfile importAthleteFromUrl(String url) {
-        log.info("Received Strava profile URL import request: " + url);
-        String stravaId = parseAthleteId(url);
+    public String getAuthorizationUrl(String baseUrl) {
+        String redirectUri = baseUrl + "/api/athletes/strava/callback";
+        return "https://www.strava.com/oauth/authorize?client_id=" + clientId +
+                "&response_type=code&redirect_uri=" + redirectUri + "&scope=read,activity:read_all";
+    }
+
+    public AthleteProfile handleAuthorizationCallback(String code, String baseUrl) throws Exception {
+        log.info("Exchanging Strava authorization code for access token...");
+        
+        String redirectUri = baseUrl + "/api/athletes/strava/callback";
+
+        // 1. Exchange token
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("client_id", clientId);
+        map.add("client_secret", clientSecret);
+        map.add("code", code);
+        map.add("grant_type", "authorization_code");
+        
+        // redirect_uri isn't strictly required for the token exchange endpoint in Strava, 
+        // but let's include it for safety
+        map.add("redirect_uri", redirectUri);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+        
+        ResponseEntity<JsonNode> response = restTemplate.postForEntity(
+                "https://www.strava.com/oauth/token", request, JsonNode.class);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new Exception("Failed to retrieve token from Strava");
+        }
+
+        JsonNode tokenNode = response.getBody();
+        String accessToken = tokenNode.get("access_token").asText();
+
+        // 2. The token response already includes a summary of the athlete. 
+        // We can use it or fetch full profile.
+        JsonNode athleteNode = tokenNode.get("athlete");
+        String stravaId = athleteNode.get("id").asText();
         
         Optional<AthleteProfile> existing = athleteRepository.findByStravaId(stravaId);
+        AthleteProfile athlete;
+        
         if (existing.isPresent()) {
-            log.info("Athlete with Strava ID " + stravaId + " already exists in the database. Selecting them.");
-            return existing.get();
-        }
-
-        // Create new athlete profile
-        String name = "Athlete #" + stravaId;
-        String avatarUrl = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=120"; // standard sport avatar
-        String sport = "Run";
-        double goal = 50.0;
-        
-        // Custom name and sport based on ID seed to make it feel personalized
-        int idSeed = stravaId.hashCode();
-        String[] firstNames = {"Ryan", "Elena", "Liam", "Sophia", "Chris", "Emma", "Jessica", "Tyler"};
-        String[] lastNames = {"Miller", "Davis", "Wilson", "Taylor", "Anderson", "Thomas", "Jackson", "White"};
-        Random r = new Random(idSeed);
-        
-        name = firstNames[Math.abs(r.nextInt()) % firstNames.length] + " " + lastNames[Math.abs(r.nextInt()) % lastNames.length];
-        
-        int sportPick = Math.abs(r.nextInt()) % 3;
-        if (sportPick == 0) {
-            sport = "Run";
-            goal = 40.0 + (Math.abs(r.nextInt()) % 30);
-        } else if (sportPick == 1) {
-            sport = "Ride";
-            goal = 120.0 + (Math.abs(r.nextInt()) % 150);
+            athlete = existing.get();
+            log.info("Athlete " + athlete.getName() + " already exists. Updating data.");
         } else {
-            sport = "Gym/Run";
-            goal = 30.0 + (Math.abs(r.nextInt()) % 20);
+            athlete = new AthleteProfile();
+            athlete.setStravaId(stravaId);
         }
 
-        AthleteProfile athlete = new AthleteProfile(
-            stravaId,
-            name,
-            avatarUrl,
-            "San Francisco", "California", "USA",
-            sport,
-            goal,
-            sport.equals("Ride") ? 220 + (Math.abs(r.nextInt()) % 80) : null,
-            60 + (r.nextInt(15) - 5),
-            185 + (r.nextInt(20) - 10),
-            65.0 + (r.nextInt(20))
-        );
-
+        athlete.setName(athleteNode.hasNonNull("firstname") ? 
+            athleteNode.get("firstname").asText() + " " + athleteNode.get("lastname").asText() : "Athlete " + stravaId);
+        
+        if (athleteNode.hasNonNull("profile")) {
+            athlete.setAvatarUrl(athleteNode.get("profile").asText());
+        }
+        if (athleteNode.hasNonNull("city")) {
+            athlete.setCity(athleteNode.get("city").asText());
+        }
+        if (athleteNode.hasNonNull("state")) {
+            athlete.setState(athleteNode.get("state").asText());
+        }
+        if (athleteNode.hasNonNull("country")) {
+            athlete.setCountry(athleteNode.get("country").asText());
+        }
+        if (athleteNode.hasNonNull("weight")) {
+            athlete.setWeight(athleteNode.get("weight").asDouble());
+        }
+        
+        if (athlete.getPrimarySport() == null) {
+            athlete.setPrimarySport("Run");
+            athlete.setWeeklyDistanceGoal(50.0);
+        }
+        
         athlete = athleteRepository.save(athlete);
-        
-        // Generate simulated activities for the last 60 days
-        log.info("Generating training history for newly imported athlete: " + name);
-        generateMockHistoryForAthlete(athlete, 60);
-        
-        log.info("Profile " + name + " imported successfully.");
+
+        // 3. Fetch recent activities
+        log.info("Fetching recent activities for " + athlete.getName());
+        fetchAndSaveActivities(athlete, accessToken);
+
         return athlete;
     }
 
-    // --- Helper Methods ---
+    private void fetchAndSaveActivities(AthleteProfile athlete, String accessToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
 
-    /**
-     * Extracts the athlete ID from a standard Strava URL.
-     * E.g., https://www.strava.com/athletes/12345678 -> "12345678"
-     */
-    public String parseAthleteId(String url) {
-        if (url == null || url.trim().isEmpty()) {
-            throw new IllegalArgumentException("Strava URL cannot be empty");
-        }
-        
-        String cleanUrl = url.trim().toLowerCase();
-        
-        // Handle trailing slashes
-        if (cleanUrl.endsWith("/")) {
-            cleanUrl = cleanUrl.substring(0, cleanUrl.length() - 1);
-        }
+        try {
+            ResponseEntity<JsonNode[]> response = restTemplate.exchange(
+                    "https://www.strava.com/api/v3/athlete/activities?per_page=30",
+                    HttpMethod.GET,
+                    entity,
+                    JsonNode[].class
+            );
 
-        // Find athlete segment
-        if (cleanUrl.contains("/athletes/")) {
-            int idx = cleanUrl.indexOf("/athletes/") + "/athletes/".length();
-            String idPart = cleanUrl.substring(idx);
-            // In case of query parameters (e.g. ?hl=en)
-            if (idPart.contains("?")) {
-                idPart = idPart.substring(0, idPart.indexOf("?"));
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                for (JsonNode actNode : response.getBody()) {
+                    String stravaActivityId = actNode.get("id").asText();
+                    
+                    // Skip if already exists
+                    if (activityRepository.findByStravaActivityId(stravaActivityId).isPresent()) {
+                        continue;
+                    }
+                    
+                    Activity act = new Activity();
+                    act.setStravaActivityId(stravaActivityId);
+                    act.setAthlete(athlete);
+                    act.setName(actNode.get("name").asText());
+                    act.setType(actNode.get("type").asText());
+                    
+                    String startDateStr = actNode.get("start_date_local").asText();
+                    act.setStartDate(LocalDateTime.parse(startDateStr, DateTimeFormatter.ISO_DATE_TIME));
+                    
+                    act.setDistance(actNode.get("distance").asDouble() / 1000.0); // m to km
+                    act.setMovingTime(actNode.get("moving_time").asInt());
+                    act.setElapsedTime(actNode.get("elapsed_time").asInt());
+                    
+                    if (actNode.hasNonNull("total_elevation_gain")) {
+                        act.setTotalElevationGain(actNode.get("total_elevation_gain").asDouble());
+                    }
+                    
+                    if (actNode.hasNonNull("average_heartrate")) {
+                        act.setAverageHr(actNode.get("average_heartrate").asInt());
+                    }
+                    if (actNode.hasNonNull("max_heartrate")) {
+                        act.setMaxHr(actNode.get("max_heartrate").asInt());
+                    }
+                    if (actNode.hasNonNull("average_speed")) {
+                        act.setAverageSpeed(actNode.get("average_speed").asDouble() * 3.6); // m/s to km/h
+                    }
+                    if (actNode.hasNonNull("average_watts")) {
+                        act.setAverageWatts(actNode.get("average_watts").asDouble());
+                    }
+                    
+                    act.setTrimp(performanceService.calculateTrimp(act, athlete));
+                    activityRepository.save(act);
+                }
+                log.info("Successfully fetched and saved recent activities.");
             }
-            return idPart;
+        } catch (Exception e) {
+            log.error("Failed to fetch activities: " + e.getMessage());
         }
-        
-        // Fallback: If they enter a number or username directly, treat it as the ID
-        String val = url.trim();
-        if (val.matches("\\d+")) {
-            return val;
-        }
-        
-        // Return cleaned representation
-        return val.replaceAll("[^a-zA-Z0-9]", "_");
     }
 
     private void createDefaultProfiles() {
-        // 1. Alex Carter (Ultra-runner)
-        AthleteProfile alex = new AthleteProfile(
-            "alex_carter_runner",
-            "Alex Carter",
-            "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&q=80&w=150",
-            "Boulder", "Colorado", "USA",
-            "Run",
-            75.0, // km/week
-            null,
-            42,  // resting HR
-            185, // max HR
-            68.5 // kg
-        );
+        AthleteProfile alex = new AthleteProfile("alex_carter_runner", "Alex Carter", "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&q=80&w=150", "Boulder", "Colorado", "USA", "Run", 75.0, null, 42, 185, 68.5);
         alex = athleteRepository.save(alex);
         generateMockHistoryForAthlete(alex, 90);
 
-        // 2. Sarah Chen (Road Cyclist)
-        AthleteProfile sarah = new AthleteProfile(
-            "sarah_chen_cyclist",
-            "Sarah Chen",
-            "https://images.unsplash.com/photo-1489710437720-ebb67ec84dd2?auto=format&fit=crop&q=80&w=150",
-            "Vancouver", "BC", "Canada",
-            "Ride",
-            240.0, // km/week
-            285,   // FTP (Watts)
-            48,    // resting HR
-            192,   // max HR
-            59.0   // kg
-        );
+        AthleteProfile sarah = new AthleteProfile("sarah_chen_cyclist", "Sarah Chen", "https://images.unsplash.com/photo-1489710437720-ebb67ec84dd2?auto=format&fit=crop&q=80&w=150", "Vancouver", "BC", "Canada", "Ride", 240.0, 285, 48, 192, 59.0);
         sarah = athleteRepository.save(sarah);
         generateMockHistoryForAthlete(sarah, 90);
 
-        // 3. Marcus Vance (Hybrid Athlete)
-        AthleteProfile marcus = new AthleteProfile(
-            "marcus_vance_hybrid",
-            "Marcus Vance",
-            "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=150",
-            "Austin", "Texas", "USA",
-            "Gym/Run",
-            35.0, // km/week
-            null,
-            54,  // resting HR
-            188, // max HR
-            82.0 // kg
-        );
+        AthleteProfile marcus = new AthleteProfile("marcus_vance_hybrid", "Marcus Vance", "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=150", "Austin", "Texas", "USA", "Gym/Run", 35.0, null, 54, 188, 82.0);
         marcus = athleteRepository.save(marcus);
         generateMockHistoryForAthlete(marcus, 90);
     }
@@ -200,32 +225,24 @@ public class StravaService implements CommandLineRunner {
         for (int i = daysCount; i >= 0; i--) {
             LocalDateTime date = now.minusDays(i).withHour(8).withMinute(0).withSecond(0);
 
-            // Determine if athlete trains today
             boolean trains = false;
             double randVal = r.nextDouble();
 
-            if (primarySport.equals("Run") && randVal < 0.6) { // 4-5 times a week running
-                trains = true;
-            } else if (primarySport.equals("Ride") && randVal < 0.7) { // 5 times a week riding
-                trains = true;
-            } else if (primarySport.equals("Gym/Run") && randVal < 0.8) { // 5-6 times hybrid training
-                trains = true;
-            }
+            if (primarySport.equals("Run") && randVal < 0.6) trains = true;
+            else if (primarySport.equals("Ride") && randVal < 0.7) trains = true;
+            else if (primarySport.equals("Gym/Run") && randVal < 0.8) trains = true;
 
-            if (!trains) {
-                continue;
-            }
+            if (!trains) continue;
 
-            // Decide workout type
             Activity act = new Activity();
             act.setAthlete(athlete);
             act.setStartDate(date);
 
             if (primarySport.equals("Run")) {
-                boolean longRun = (date.getDayOfWeek().getValue() == 7); // Sunday long run
+                boolean longRun = (date.getDayOfWeek().getValue() == 7);
                 double distance = longRun ? 20 + r.nextInt(15) : 8 + r.nextInt(8);
                 int avgHr = longRun ? 135 + r.nextInt(10) : 142 + r.nextInt(15);
-                int durationSeconds = (int) (distance * (5.5 + r.nextDouble() * 0.5) * 60); // ~5:30 min/km pace
+                int durationSeconds = (int) (distance * (5.5 + r.nextDouble() * 0.5) * 60);
                 
                 act.setStravaActivityId(athlete.getId() + "_mock_run_" + i);
                 act.setName(longRun ? "Sunday Trail Long Run" : "Tempo Road Run");
@@ -237,12 +254,11 @@ public class StravaService implements CommandLineRunner {
                 act.setAverageHr(avgHr);
                 act.setMaxHr(avgHr + 25);
                 act.setAverageSpeed(distance / (durationSeconds / 3600.0));
-
             } else if (primarySport.equals("Ride")) {
-                boolean longRide = (date.getDayOfWeek().getValue() == 6); // Saturday long ride
+                boolean longRide = (date.getDayOfWeek().getValue() == 6);
                 double distance = longRide ? 80 + r.nextInt(60) : 30 + r.nextInt(25);
                 int avgHr = longRide ? 130 + r.nextInt(10) : 145 + r.nextInt(15);
-                int durationSeconds = (int) (distance * (2.0 + r.nextDouble() * 0.3) * 60); // ~30 km/h pace
+                int durationSeconds = (int) (distance * (2.0 + r.nextDouble() * 0.3) * 60);
                 double avgWatts = longRide ? 170 + r.nextInt(30) : 210 + r.nextInt(40);
                 
                 act.setStravaActivityId(athlete.getId() + "_mock_ride_" + i);
@@ -256,8 +272,7 @@ public class StravaService implements CommandLineRunner {
                 act.setMaxHr(avgHr + 30);
                 act.setAverageSpeed(distance / (durationSeconds / 3600.0));
                 act.setAverageWatts(Math.round(avgWatts * 10.0) / 10.0);
-
-            } else { // Hybrid
+            } else {
                 boolean liftDay = (i % 2 == 0);
                 if (liftDay) {
                     int durationSeconds = 45 * 60 + r.nextInt(30) * 60;
@@ -288,8 +303,6 @@ public class StravaService implements CommandLineRunner {
                     act.setAverageSpeed(distance / (durationSeconds / 3600.0));
                 }
             }
-
-            // Calculate TRIMP
             act.setTrimp(performanceService.calculateTrimp(act, athlete));
             activityRepository.save(act);
         }
