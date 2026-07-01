@@ -26,8 +26,9 @@ body {
     background-color: var(--bg-body);
     color: var(--text-primary);
     font-family: var(--font-family);
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .app-container {
@@ -1359,3 +1360,122 @@ html {
     }
 }
 
+/* ===== Athlete Dashboard Theme Layout ===== */
+.athlete-profile-container {
+    display: flex;
+    gap: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.athlete-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+}
+.athlete-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    border-radius: 8px;
+    text-align: center;
+}
+.athlete-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
+    object-fit: cover;
+    margin-bottom: 16px;
+}
+.athlete-card h1 {
+    font-size: 24px;
+    margin: 0 0 4px 0;
+    text-transform: uppercase;
+    color: var(--text-primary);
+}
+.athlete-role {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+.athlete-status {
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+}
+.athlete-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+    font-size: 13px;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-secondary);
+}
+.summary-row span:last-child {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.summary-row.highlight span:last-child {
+    color: var(--color-green);
+}
+.athlete-main {
+    flex-grow: 1;
+}
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+}
+.profile-stat-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 8px;
+}
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-secondary);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+.profile-stat-card .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.split-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.profile-chart-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    border-radius: 8px;
+}
+.athlete-feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+.athlete-feed-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.athlete-feed-item:last-child {
+    border-bottom: none;
+}

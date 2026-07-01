@@ -1,7 +1,9 @@
 // Charting Helpers for Gemini Health Dashboard (Light Theme)
 
 function initPerformanceChart(canvasId) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const el = document.getElementById(canvasId);
+    if (!el) return null;
+    const ctx = el.getContext('2d');
     return new Chart(ctx, {
         type: 'line',
         data: {
@@ -67,7 +69,9 @@ function initPerformanceChart(canvasId) {
 }
 
 function initZonesChart(canvasId) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const el = document.getElementById(canvasId);
+    if (!el) return null;
+    const ctx = el.getContext('2d');
     return new Chart(ctx, {
         type: 'doughnut',
         data: {

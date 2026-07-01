@@ -4,14 +4,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isAdmin = document.cookie.includes('admin_token=true');
 
-    // Init charts
-    performanceChart = initPerformanceChart('performanceChart');
-    zonesChart = initZonesChart('zonesChart');
+    // Init charts safely
+    if (typeof initPerformanceChart === 'function') {
+        performanceChart = initPerformanceChart('performanceChart');
+    }
+    if (typeof initZonesChart === 'function') {
+        zonesChart = initZonesChart('zonesChart');
+    }
 
     // DOM Elements
     const adminControls = document.getElementById('admin-controls');
     const leaderboardList = document.getElementById('leaderboard-list');
     const globalFeedList = document.getElementById('global-feed-list');
+    const challengesList = document.getElementById('challenges-list');
     const stravaConnectBtn = document.getElementById('strava-connect-btn');
     
     // Champion Elements
@@ -50,7 +55,46 @@ document.addEventListener('DOMContentLoaded', () => {
         lastUpdatedTicker.innerHTML = html;
     }
 
+    async function loadChallenges() {
+        if (!challengesList) return;
+        
+        try {
+            const res = await fetch('/api/dashboard/challenges');
+            const data = await res.json();
+            
+            if (data.length === 0) {
+                challengesList.innerHTML = '<div class="loading-text" style="color: #666; font-size: 14px; text-align: center; padding: 20px;">No active challenges found.</div>';
+                return;
+            }
+            
+            challengesList.innerHTML = '';
+            data.forEach(challenge => {
+                const el = document.createElement('div');
+                el.className = 'challenge-card';
+                el.style.backgroundColor = '#1a1a1a';
+                el.style.border = '1px solid #333';
+                el.style.borderRadius = '8px';
+                el.style.padding = '20px';
+                el.style.color = '#fff';
+                el.innerHTML = `
+                    <h4 style="margin-bottom: 10px; font-size: 16px;">${challenge.title}</h4>
+                    <p style="color: #aaa; font-size: 14px; margin-bottom: 15px;">${challenge.description}</p>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888;">
+                        <span>Target: ${challenge.targetValue} ${challenge.metric}</span>
+                        <span>Ends: ${new Date(challenge.endDate).toLocaleDateString()}</span>
+                    </div>
+                `;
+                challengesList.appendChild(el);
+            });
+        } catch (err) {
+            console.error('Error loading challenges:', err);
+            challengesList.innerHTML = '<div class="loading-text" style="color: red; text-align: center;">Failed to load challenges.</div>';
+        }
+    }
+
     async function loadLeaderboard() {
+        if (!leaderboardList) return;
+        
         try {
             const res = await fetch('/api/dashboard/leaderboard');
             const data = await res.json();
@@ -90,7 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td class="acts-cell">${entry.totalActivities || 0}</td>
                     <td class="value-cell">${dist} km</td>
                 `;
-                tr.addEventListener('click', () => openAthleteDashboard(entry.athlete));
+                tr.addEventListener('click', () => {
+                    window.location.href = 'profile.html?id=' + entry.athlete.id;
+                });
                 leaderboardList.appendChild(tr);
             });
 
@@ -101,6 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadGlobalFeed() {
+        if (!globalFeedList) return;
+        
         try {
             const res = await fetch('/api/dashboard/feed');
             const data = await res.json();
@@ -153,60 +201,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function openAthleteDashboard(athlete) {
         currentAthleteId = athlete.id;
-        document.getElementById('athlete-avatar').src = athlete.avatarUrl || '';
-        document.getElementById('athlete-name').textContent = athlete.name;
-        document.getElementById('athlete-city').textContent = athlete.city || '--';
-        document.getElementById('athlete-state').textContent = athlete.state || '';
-        document.getElementById('athlete-country').textContent = athlete.country || '';
+        const avatarEl = document.getElementById('athlete-avatar');
+        if (avatarEl) avatarEl.src = athlete.avatarUrl || '';
+        const nameEl = document.getElementById('athlete-name');
+        if (nameEl) nameEl.textContent = athlete.name;
+        const cityEl = document.getElementById('athlete-city');
+        if (cityEl) cityEl.textContent = athlete.city || '--';
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        athleteDashboardOverlay.classList.remove('hidden');
 
         // Fetch Activities & Performance
-        const [resAct, resPerf, resZones] = await Promise.all([
+        const [resAct, resPerf] = await Promise.all([
             fetch(`/api/athletes/${athlete.id}/activities`),
-            fetch(`/api/athletes/${athlete.id}/performance`),
-            fetch(`/api/athletes/${athlete.id}/zones`)
+            fetch(`/api/athletes/${athlete.id}/performance`)
         ]);
 
         const activities = resAct.ok ? await resAct.json() : [];
         const timeline = resPerf.ok ? await resPerf.json() : [];
-        const zones = resZones.ok ? await resZones.json() : {};
 
-        // Calculate Weekly Dist
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
-        startOfWeek.setHours(0,0,0,0);
-        let sum = 0;
+        // Calculate Stats
+        let sumDist = 0;
+        let sumTime = 0;
+        let sumElev = 0;
+        let maxRun = 0;
+        
         activities.forEach(a => {
-            const d = new Date(a.startDate);
-            if(d >= startOfWeek && d <= today) sum += (a.distance || 0);
+            sumDist += (a.distance || 0);
+            sumTime += (a.movingTime || 0);
+            sumElev += (a.totalElevationGain || 0);
+            if (a.type && a.type.toLowerCase().includes('run')) {
+                if ((a.distance || 0) > maxRun) {
+                    maxRun = (a.distance || 0);
+                }
+            }
         });
-        document.getElementById('stat-weekly-dist').textContent = sum.toFixed(1);
+        
+        const durH = Math.floor(sumTime / 3600);
+        const durM = Math.floor((sumTime % 3600) / 60);
 
-        // Update timeline text
-        if (timeline.length > 0) {
-            const latest = timeline[timeline.length - 1];
-            document.getElementById('stat-fitness').textContent = Math.round(latest.fitness);
-            document.getElementById('stat-fatigue').textContent = Math.round(latest.fatigue);
-            document.getElementById('stat-form').textContent = Math.round(latest.form);
-        } else {
-            document.getElementById('stat-fitness').textContent = '0';
-            document.getElementById('stat-fatigue').textContent = '0';
-            document.getElementById('stat-form').textContent = '0';
+        if(document.getElementById('stat-activities')) document.getElementById('stat-activities').textContent = activities.length;
+        if(document.getElementById('stat-longest-run')) document.getElementById('stat-longest-run').textContent = maxRun.toFixed(1) + ' km';
+        if(document.getElementById('stat-elevation')) document.getElementById('stat-elevation').textContent = Math.round(sumElev) + ' m';
+        if(document.getElementById('stat-moving-time')) document.getElementById('stat-moving-time').textContent = `${durH}h ${durM}m`;
+        
+        let avgPaceStr = '0:00/km';
+        if (sumDist > 0 && sumTime > 0) {
+            const paceSecs = (sumTime / (sumDist)); // seconds per km
+            const pM = Math.floor(paceSecs / 60);
+            const pS = Math.floor(paceSecs % 60);
+            avgPaceStr = `${pM}:${pS.toString().padStart(2, '0')}/km`;
+        }
+        if(document.getElementById('stat-fastest-pace')) document.getElementById('stat-fastest-pace').textContent = avgPaceStr;
+        if(document.getElementById('stat-lifetime')) document.getElementById('stat-lifetime').textContent = sumDist.toFixed(1) + ' km';
+
+        // Feed Rendering
+        const feedList = document.getElementById('athlete-feed-list');
+        if (feedList) {
+            if (activities.length === 0) {
+                feedList.innerHTML = '<div style="padding:10px; color:#666;">No recent activities.</div>';
+            } else {
+                feedList.innerHTML = '';
+                // Show top 10 recent
+                activities.slice(0, 10).forEach(act => {
+                    const actDate = new Date(act.startDate);
+                    const diffTime = Math.abs(new Date() - actDate);
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    const timeAgo = diffDays > 0 ? `${diffDays}d ago` : 'Today';
+
+                    const dist = act.distance ? act.distance.toFixed(1) + ' km' : '';
+                    const durH = Math.floor(act.movingTime / 3600);
+                    const durM = Math.floor((act.movingTime % 3600) / 60);
+                    const timeStr = durH > 0 ? `${durH}h ${durM}m` : `${durM}m`;
+                    
+                    const el = document.createElement('div');
+                    el.className = 'athlete-feed-item';
+                    el.innerHTML = `
+                        <div style="flex-grow: 1;">
+                            <div style="font-size: 13px; font-weight: bold; margin-bottom: 4px;">${act.name}</div>
+                            <div style="font-size: 11px; color: #888;">
+                                ${timeStr} · ${dist}
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #666;">${timeAgo}</div>
+                    `;
+                    feedList.appendChild(el);
+                });
+            }
         }
 
-        updatePerformanceChart(performanceChart, timeline);
-        updateZonesChart(zonesChart, zones);
+        if (performanceChart) {
+            updatePerformanceChart(performanceChart, timeline);
+        }
     }
 
     // --- Event Listeners ---
-
-    closeDashboardBtn.addEventListener('click', () => {
-        athleteDashboardOverlay.classList.add('hidden');
-        currentAthleteId = null;
-    });
 
     if (stravaConnectBtn) {
         stravaConnectBtn.addEventListener('click', () => {
@@ -231,32 +319,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    fileImportInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file || !currentAthleteId) {
+    if (fileImportInput) {
+        fileImportInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !currentAthleteId) {
+                fileImportInput.value = '';
+                return;
+            }
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            const endpoint = `/api/athletes/${currentAthleteId}/upload/${ext}`;
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const res = await fetch(endpoint, { method: 'POST', body: formData });
+                if (!res.ok) throw new Error('Upload failed');
+                alert('File uploaded successfully!');
+                // Refresh
+                const m = document.getElementById('athlete-name').textContent;
+                openAthleteDashboard({ id: currentAthleteId, name: m }); 
+                loadLeaderboard();
+                loadGlobalFeed();
+            } catch(err) {
+                alert(err.message);
+            }
             fileImportInput.value = '';
-            return;
-        }
-        
-        const ext = file.name.split('.').pop().toLowerCase();
-        const endpoint = `/api/athletes/${currentAthleteId}/upload/${ext}`;
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        try {
-            const res = await fetch(endpoint, { method: 'POST', body: formData });
-            if (!res.ok) throw new Error('Upload failed');
-            alert('File uploaded successfully!');
-            // Refresh
-            const m = document.getElementById('athlete-name').textContent;
-            openAthleteDashboard({ id: currentAthleteId, name: m }); 
-            loadLeaderboard();
-            loadGlobalFeed();
-        } catch(err) {
-            alert(err.message);
-        }
-        fileImportInput.value = '';
-    });
+        });
+    }
 
     // Handle time filters (Visual only for now)
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -267,6 +357,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Startup
-    loadLeaderboard();
-    loadGlobalFeed().then(() => updateTickerTime());
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('profile.html')) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const athleteId = urlParams.get('id');
+        if (athleteId) {
+            fetch(`/api/athletes/${athleteId}`)
+                .then(res => res.json())
+                .then(athlete => {
+                    openAthleteDashboard(athlete);
+                })
+                .catch(err => console.error(err));
+        }
+    } else if (currentPath.includes('leaderboard.html')) {
+        if (typeof loadLeaderboard === 'function') loadLeaderboard();
+    } else if (currentPath.includes('challenges.html')) {
+        if (typeof loadChallenges === 'function') loadChallenges();
+    } else if (currentPath.includes('dashboard.html')) {
+        if (typeof loadGlobalFeed === 'function') {
+            loadGlobalFeed().then(() => {
+                if (typeof updateTickerTime === 'function') updateTickerTime();
+            });
+        }
+    } else {
+        // Default (index.html or /)
+        if (typeof loadLeaderboard === 'function') loadLeaderboard();
+        if (typeof loadGlobalFeed === 'function') {
+            loadGlobalFeed().then(() => {
+                if (typeof updateTickerTime === 'function') updateTickerTime();
+            });
+        }
+    }
 });

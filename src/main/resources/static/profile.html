@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Health Dashboard - Profile</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.1">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <header class="top-nav">
+        <div class="brand">
+            <a href="index.html" style="text-decoration: none; color: inherit;">
+                <h2>Gemini Health</h2>
+                <span class="subtitle">Fitness Club</span>
+            </a>
+        </div>
+        <nav class="main-nav">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+            <a href="challenges.html" class="nav-link">Challenges</a>
+        </nav>
+        <div class="nav-actions">
+            <button id="strava-connect-btn" class="strava-connect-btn">Connect with Strava</button>
+            <div id="admin-controls" class="admin-controls hidden">
+                <span class="admin-badge">Admin Mode Active</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-container" style="background-color: var(--bg-body); min-height: calc(100vh - 70px);">
+        <div id="athlete-dashboard-overlay" class="athlete-dashboard-overlay" style="position: static; min-height: auto;">
+            <a href="index.html" class="close-dashboard-btn" style="color: #ccc; margin-bottom: 20px; display: inline-block; text-decoration: none;">&larr; Back to Dashboard</a>
+            
+            <div class="athlete-profile-container">
+                <!-- Left Sidebar (Athlete Card) -->
+                <aside class="athlete-sidebar">
+                    <div class="athlete-card">
+                        <img id="athlete-avatar" src="" alt="Avatar" class="athlete-avatar-large">
+                        <h1 id="athlete-name">Athlete Name</h1>
+                        <p class="athlete-role">Athlete</p>
+                        <p class="athlete-status">STRAVA CONNECTED · <span id="athlete-city">City</span></p>
+                        
+                        <div class="athlete-summary">
+                            <div class="summary-row"><span>Today</span><span id="stat-today">0.0 km</span></div>
+                            <div class="summary-row"><span>This week</span><span id="stat-this-week">0.0 km</span></div>
+                            <div class="summary-row"><span>This month</span><span id="stat-this-month">0.0 km</span></div>
+                            <div class="summary-row highlight"><span>Lifetime</span><span id="stat-lifetime">0.0 km</span></div>
+                            <div class="summary-row streak"><span style="color: #ff4500;">🔥 Current streak</span><span id="stat-streak">0 d</span></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button id="delete-profile-btn" class="delete-btn admin-only hidden" style="width: 100%; margin-bottom: 10px;">Delete Profile</button>
+                        <label class="file-upload-label" style="display:block; text-align: center; border-color: #444; color: #ccc; background: transparent;">
+                            <span>Upload CSV / GPX</span>
+                            <input type="file" id="file-import-input" accept=".csv,.gpx">
+                        </label>
+                    </div>
+                </aside>
+
+                <!-- Right Content -->
+                <main class="athlete-main">
+                    <div class="stats-grid profile-stats">
+                        <div class="stat-card profile-stat-card">
+                            <div class="stat-header"><span>ACTIVITIES</span><span class="stat-icon">📈</span></div>
+                            <p class="stat-value" id="stat-activities">0</p>
+                        </div>
+                        <div class="stat-card profile-stat-card">
+                            <div class="stat-header"><span>LONGEST RUN</span><span class="stat-icon">🏃</span></div>
+                            <p class="stat-value" id="stat-longest-run">0.0 km</p>
+                        </div>
+                        <div class="stat-card profile-stat-card">
+                            <div class="stat-header"><span>FASTEST PACE</span><span class="stat-icon">⏱️</span></div>
+                            <p class="stat-value" id="stat-fastest-pace">0:00/km</p>
+                        </div>
+                        <div class="stat-card profile-stat-card">
+                            <div class="stat-header"><span>ELEVATION</span><span class="stat-icon">🏔️</span></div>
+                            <p class="stat-value" id="stat-elevation">0 m</p>
+                        </div>
+                        <div class="stat-card profile-stat-card">
+                            <div class="stat-header"><span>MOVING TIME</span><span class="stat-icon">⏳</span></div>
+                            <p class="stat-value" id="stat-moving-time">0h 0m</p>
+                        </div>
+                        <div class="stat-card profile-stat-card">
+                            <div class="stat-header"><span>AVG/WEEK</span><span class="stat-icon">📉</span></div>
+                            <p class="stat-value" id="stat-avg-week">0.0 km</p>
+                        </div>
+                    </div>
+
+                    <div class="charts-grid split-layout">
+                        <div class="chart-card profile-chart-card">
+                            <h3 style="color: #888; font-size: 11px; letter-spacing: 1px; margin-bottom: 20px;">WEEKLY TREND · LAST 12 WEEKS</h3>
+                            <div class="chart-container">
+                                <canvas id="performanceChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card profile-chart-card feed-card">
+                            <h3 style="color: #888; font-size: 11px; letter-spacing: 1px; margin-bottom: 20px;">RECENT ACTIVITIES</h3>
+                            <div id="athlete-feed-list" class="athlete-feed-list">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/charts.js?v=1.0.1"></script>
+    <script src="js/app.js?v=1.0.1"></script>
+</body>
+</html>

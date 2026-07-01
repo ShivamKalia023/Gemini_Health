@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Health Dashboard - Challenges</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.1">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <header class="top-nav">
+        <div class="brand">
+            <a href="index.html" style="text-decoration: none; color: inherit;">
+                <h2>Gemini Health</h2>
+                <span class="subtitle">Fitness Club</span>
+            </a>
+        </div>
+        <nav class="main-nav">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+            <a href="challenges.html" class="nav-link active">Challenges</a>
+        </nav>
+        <div class="nav-actions">
+            <button id="strava-connect-btn" class="strava-connect-btn">Connect with Strava</button>
+            <div id="admin-controls" class="admin-controls hidden">
+                <span class="admin-badge">Admin Mode Active</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-container" style="justify-content: center; padding-top: 40px; display: flex;">
+        <main class="dashboard-main" style="width: 100%; max-width: 1200px;">
+            <section class="challenges-section" id="challenges-section" style="width: 100%; height: auto;">
+                <div class="section-header">
+                    <div>
+                        <h3>Active Challenges</h3>
+                        <span class="section-subtitle">COMPETE WITH FRIENDS</span>
+                    </div>
+                </div>
+                <div id="challenges-list" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="loading-text">Loading challenges...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <script src="js/charts.js?v=1.0.1"></script>
+    <script src="js/app.js?v=1.0.1"></script>
+</body>
+</html>

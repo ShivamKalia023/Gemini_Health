@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Health Dashboard</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.1">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Infinite Ticker -->
+    <div class="ticker-wrapper">
+        <div class="ticker-content" id="last-updated-ticker">
+            <span>Last Updated: Fetching...</span>
+            <span>Last Updated: Fetching...</span>
+            <span>Last Updated: Fetching...</span>
+            <span>Last Updated: Fetching...</span>
+        </div>
+    </div>
+
+    <!-- Top Navigation -->
+    <header class="top-nav">
+        <div class="brand">
+            <a href="index.html" style="text-decoration: none; color: inherit;">
+                <h2>Gemini Health</h2>
+                <span class="subtitle">Fitness Club</span>
+            </a>
+        </div>
+        <nav class="main-nav">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="dashboard.html" class="nav-link active">Dashboard</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+            <a href="challenges.html" class="nav-link">Challenges</a>
+        </nav>
+        <div class="nav-actions">
+            <button id="strava-connect-btn" class="strava-connect-btn">Connect with Strava</button>
+            <div id="admin-controls" class="admin-controls hidden">
+                <span class="admin-badge">Admin Mode Active</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <main class="dashboard-main" id="dashboard-main">
+            <!-- Dashboard Header & Filters -->
+            <div class="dashboard-header">
+                <div class="title-area">
+                    <span class="live-label">LIVE LEADERBOARD</span>
+                    <h1 class="page-title">DASHBOARD</h1>
+                </div>
+                <div class="time-filters">
+                    <button class="filter-btn">TODAY</button>
+                    <button class="filter-btn">THIS WEEK</button>
+                    <button class="filter-btn">THIS MONTH</button>
+                    <button class="filter-btn">THIS YEAR</button>
+                    <button class="filter-btn active">ALL TIME</button>
+                </div>
+            </div>
+
+
+
+                <!-- Right Column: Activity Feed -->
+                <section class="feed-section" id="feed-section">
+                    <div class="section-header" id="challenges-section">
+                        <div>
+                            <h3>Activity Feed</h3>
+                            <span class="section-subtitle">LIVE UPDATES</span>
+                        </div>
+                    </div>
+                    <div id="global-feed-list" class="global-feed-list">
+                        <div class="loading-text">Loading feed...</div>
+                    </div>
+                </section>
+            </div>
+        </main>
+        
+    </div>
+    
+    <script src="js/charts.js?v=1.0.1"></script>
+    <script src="js/app.js?v=1.0.1"></script>
+</body>
+</html>

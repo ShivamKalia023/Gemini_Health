@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Health Dashboard - Home</title>
+    <title>Gemini Health Dashboard - Leaderboard</title>
     <link rel="stylesheet" href="css/style.css?v=1.0.1">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -17,9 +17,9 @@
             </a>
         </div>
         <nav class="main-nav">
-            <a href="index.html" class="nav-link active">Home</a>
+            <a href="index.html" class="nav-link">Home</a>
             <a href="dashboard.html" class="nav-link">Dashboard</a>
-            <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+            <a href="leaderboard.html" class="nav-link active">Leaderboards</a>
             <a href="challenges.html" class="nav-link">Challenges</a>
         </nav>
         <div class="nav-actions">
@@ -61,17 +61,15 @@
                 <div class="champion-rank">1</div>
             </div>
 
-            <!-- Two Column Layout -->
-            <div class="dashboard-columns">
-                <!-- Left Column: Leaderboard -->
-                <section class="leaderboard-section" id="leaderboard-section">
-                    <div class="section-header">
-                        <div>
-                            <h3>Leaderboard</h3>
-                            <span class="section-subtitle">TOP PERFORMERS · ALL TIME</span>
-                        </div>
-                        <a href="leaderboard.html" class="view-all">VIEW ALL &rarr;</a>
+            <!-- Leaderboard -->
+            <section class="leaderboard-section" id="leaderboard-section" style="width: 100%; height: auto;">
+                <div class="section-header">
+                    <div>
+                        <h3>Global Leaderboard</h3>
+                        <span class="section-subtitle">TOP PERFORMERS · ALL TIME</span>
                     </div>
+                </div>
+                <div class="leaderboard-table-container">
                     <table class="leaderboard-table">
                         <thead>
                             <tr>
@@ -85,22 +83,8 @@
                             <tr><td colspan="4" class="loading-text">Loading leaderboard...</td></tr>
                         </tbody>
                     </table>
-                </section>
-
-                <!-- Right Column: Activity Feed -->
-                <section class="feed-section" id="feed-section">
-                    <div class="section-header">
-                        <div>
-                            <h3>Activity Feed</h3>
-                            <span class="section-subtitle">LIVE UPDATES</span>
-                        </div>
-                        <a href="index.html" class="view-all">VIEW ALL &rarr;</a>
-                    </div>
-                    <div id="global-feed-list" class="global-feed-list">
-                        <div class="loading-text">Loading feed...</div>
-                    </div>
-                </section>
-            </div>
+                </div>
+            </section>
         </main>
     </div>
     

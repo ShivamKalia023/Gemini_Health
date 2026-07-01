@@ -1,6 +1,6 @@
 package com.geminihealth.dashboard.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -15,9 +15,9 @@ public class Activity {
     @Column(name = "strava_activity_id")
     private String stravaActivityId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "athlete_id", nullable = false)
-    @JsonIgnore
+    @JsonIgnoreProperties("activities")
     private AthleteProfile athlete;
 
     private String name;
