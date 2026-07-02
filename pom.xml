@@ -11,7 +11,7 @@
     <groupId>com.geminihealth</groupId>
     <artifactId>dashboard</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Gemini Health Dashboard</name>
+    <name>Gemini Fitness Group Tracker</name>
     <description>Core performance tracking dashboard for Strava athletes</description>
     <properties>
         <java.version>17</java.version>

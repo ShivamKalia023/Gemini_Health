@@ -16,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -106,8 +107,10 @@ public class StravaService implements CommandLineRunner {
             athlete.setStravaId(stravaId);
         }
 
-        athlete.setName(athleteNode.hasNonNull("firstname") ? 
-            athleteNode.get("firstname").asText() + " " + athleteNode.get("lastname").asText() : "Athlete " + stravaId);
+        String firstName = athleteNode.hasNonNull("firstname") ? athleteNode.get("firstname").asText() : "";
+        String lastName = athleteNode.hasNonNull("lastname") ? athleteNode.get("lastname").asText() : "";
+        String fullName = (firstName + " " + lastName).trim();
+        athlete.setName(fullName.isEmpty() ? "Athlete " + stravaId : fullName);
         
         if (athleteNode.hasNonNull("profile")) {
             athlete.setAvatarUrl(athleteNode.get("profile").asText());
@@ -139,6 +142,27 @@ public class StravaService implements CommandLineRunner {
         return athlete;
     }
 
+    private LocalDateTime parseStravaDate(String val) {
+        if (val == null || val.isEmpty()) return null;
+        try {
+            return LocalDateTime.parse(val, DateTimeFormatter.ISO_DATE_TIME);
+        } catch (DateTimeParseException e) {
+            try {
+                return java.time.OffsetDateTime.parse(val).toLocalDateTime();
+            } catch (Exception ex) {
+                try {
+                    String fixed = val.replace("Z", "").replace("T", " ").replace("UTC", "").replaceAll("\\+00:00|\\-00:00|Z", "").trim();
+                    if (fixed.contains(".")) {
+                        fixed = fixed.substring(0, fixed.indexOf("."));
+                    }
+                    return LocalDateTime.parse(fixed, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                } catch (Exception exc) {
+                    return null;
+                }
+            }
+        }
+    }
+
     private void fetchAndSaveActivities(AthleteProfile athlete, String accessToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
@@ -154,7 +178,10 @@ public class StravaService implements CommandLineRunner {
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 for (JsonNode actNode : response.getBody()) {
-                    String stravaActivityId = actNode.get("id").asText();
+                    String stravaActivityId = actNode.hasNonNull("id") ? actNode.get("id").asText() : null;
+                    if (stravaActivityId == null) {
+                        continue;
+                    }
                     
                     // Skip if already exists
                     if (activityRepository.findByStravaActivityId(stravaActivityId).isPresent()) {
@@ -164,18 +191,42 @@ public class StravaService implements CommandLineRunner {
                     Activity act = new Activity();
                     act.setStravaActivityId(stravaActivityId);
                     act.setAthlete(athlete);
-                    act.setName(actNode.get("name").asText());
-                    act.setType(actNode.get("type").asText());
+                    act.setName(actNode.hasNonNull("name") ? actNode.get("name").asText() : "Strava Activity");
                     
-                    String startDateStr = actNode.get("start_date_local").asText();
-                    act.setStartDate(LocalDateTime.parse(startDateStr, DateTimeFormatter.ISO_DATE_TIME));
+                    // Use sport_type as primary and type as fallback since type is deprecated
+                    String sportType = "Run"; // default
+                    if (actNode.hasNonNull("sport_type")) {
+                        sportType = actNode.get("sport_type").asText();
+                    } else if (actNode.hasNonNull("type")) {
+                        sportType = actNode.get("type").asText();
+                    }
+                    act.setType(sportType);
                     
-                    act.setDistance(actNode.get("distance").asDouble() / 1000.0); // m to km
-                    act.setMovingTime(actNode.get("moving_time").asInt());
-                    act.setElapsedTime(actNode.get("elapsed_time").asInt());
+                    // Parse date safely
+                    LocalDateTime startDate = null;
+                    if (actNode.hasNonNull("start_date_local")) {
+                        startDate = parseStravaDate(actNode.get("start_date_local").asText());
+                    }
+                    if (startDate == null && actNode.hasNonNull("start_date")) {
+                        startDate = parseStravaDate(actNode.get("start_date").asText());
+                    }
+                    if (startDate == null) {
+                        startDate = LocalDateTime.now();
+                    }
+                    act.setStartDate(startDate);
+                    
+                    double distance = actNode.hasNonNull("distance") ? actNode.get("distance").asDouble() / 1000.0 : 0.0;
+                    act.setDistance(distance);
+                    
+                    int movingTime = actNode.hasNonNull("moving_time") ? actNode.get("moving_time").asInt() : 0;
+                    int elapsedTime = actNode.hasNonNull("elapsed_time") ? actNode.get("elapsed_time").asInt() : movingTime;
+                    act.setMovingTime(movingTime);
+                    act.setElapsedTime(elapsedTime);
                     
                     if (actNode.hasNonNull("total_elevation_gain")) {
                         act.setTotalElevationGain(actNode.get("total_elevation_gain").asDouble());
+                    } else {
+                        act.setTotalElevationGain(0.0);
                     }
                     
                     if (actNode.hasNonNull("average_heartrate")) {
@@ -184,9 +235,15 @@ public class StravaService implements CommandLineRunner {
                     if (actNode.hasNonNull("max_heartrate")) {
                         act.setMaxHr(actNode.get("max_heartrate").asInt());
                     }
+                    
                     if (actNode.hasNonNull("average_speed")) {
                         act.setAverageSpeed(actNode.get("average_speed").asDouble() * 3.6); // m/s to km/h
+                    } else if (movingTime > 0 && distance > 0) {
+                        act.setAverageSpeed(distance / (movingTime / 3600.0));
+                    } else {
+                        act.setAverageSpeed(0.0);
                     }
+                    
                     if (actNode.hasNonNull("average_watts")) {
                         act.setAverageWatts(actNode.get("average_watts").asDouble());
                     }

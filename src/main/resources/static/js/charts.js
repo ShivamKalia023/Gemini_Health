@@ -1,4 +1,4 @@
-// Charting Helpers for Gemini Health Dashboard (Light Theme)
+// Charting Helpers for Gemini Fitness Group Tracker (Light Theme)
 
 function initPerformanceChart(canvasId) {
     const el = document.getElementById(canvasId);

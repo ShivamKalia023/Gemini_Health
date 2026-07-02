@@ -1,8 +1,8 @@
-# Gemini Health — Context Report
+# Gemini Fitness Group Tracker — Context Report
 
 ## Purpose
 
-Gemini Health is a lightweight performance dashboard designed to import activity data (CSV bulk or single GPX), store activities in a file-based H2 database, compute training metrics (TRIMP, CTL/ATL/TSB), and visualize activities and training load in a web UI.
+Gemini Fitness Group Tracker is a lightweight performance dashboard designed to import activity data (CSV bulk or single GPX), store activities in a file-based H2 database, compute training metrics (TRIMP, CTL/ATL/TSB), and visualize activities and training load in a web UI.
 
 ## Primary Endpoints
 

@@ -1,4 +1,4 @@
-# Gemini Health - Deployment Guide
+# Gemini Fitness Group Tracker - Deployment Guide
 
 ## Security: Protecting API Credentials
 
@@ -45,8 +45,8 @@ STRAVA_CLIENT_SECRET=your_client_secret_here
 
 **Build and Run with Docker:**
 ```bash
-docker build -t gemini-health .
-docker run --env-file .env -p 8080:8080 gemini-health
+docker build -t gemini-fitness-group-tracker .
+docker run --env-file .env -p 8080:8080 gemini-fitness-group-tracker
 ```
 
 ### Step 4: Production Cloud Deployment
