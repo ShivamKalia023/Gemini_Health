@@ -54,14 +54,14 @@ public class StravaService implements CommandLineRunner {
         }
     }
 
-    public String getAuthorizationUrl(String baseUrl) {
+    public String getAuthorizationUrl(String baseUrl, String state) {
         String redirectUri = baseUrl + "/api/athletes/strava/callback";
         return "https://www.strava.com/oauth/authorize?client_id=" + clientId +
-                "&response_type=code&redirect_uri=" + redirectUri + "&scope=read,activity:read_all";
+                "&response_type=code&redirect_uri=" + redirectUri + "&scope=read,activity:read_all&state=" + state;
     }
 
-    public AthleteProfile handleAuthorizationCallback(String code, String baseUrl) throws Exception {
-        log.info("Exchanging Strava authorization code for access token...");
+    public AthleteProfile handleAuthorizationCallback(String code, String baseUrl, String state) throws Exception {
+        log.info("Exchanging Strava authorization code for access token with state: " + state);
         
         String redirectUri = baseUrl + "/api/athletes/strava/callback";
 

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Fitness Group Tracker - Welcome</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.1">
+    <style>
+        body.welcome-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 24px;
+            font-family: var(--font-family);
+            color: #f8fafc;
+            overflow: hidden;
+        }
+
+        .welcome-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.6s ease-out;
+            position: relative;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #e95420 0%, #f97316 100%);
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            font-weight: 900;
+            color: #ffffff;
+            margin: 0 auto 24px auto;
+            box-shadow: 0 10px 15px -3px rgba(233, 84, 32, 0.3);
+        }
+
+        .welcome-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+            color: #ffffff;
+        }
+
+        .welcome-tagline {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #94a3b8;
+            margin-bottom: 36px;
+            font-weight: 400;
+        }
+
+        .auth-container {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .strava-main-btn {
+            width: 100%;
+            background: #e95420;
+            color: #ffffff;
+            border: none;
+            padding: 16px 28px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px rgba(233, 84, 32, 0.4);
+        }
+
+        .strava-main-btn:hover {
+            background: #f97316;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+        }
+
+        .strava-main-btn:active {
+            transform: translateY(0);
+        }
+
+        .auth-dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .auth-dropdown.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .dropdown-item {
+            width: 100%;
+            padding: 14px 20px;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(233, 84, 32, 0.08);
+            color: #ffffff;
+        }
+
+        .dropdown-item:not(:last-child) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-arrow {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* Error Alert */
+        .error-alert {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: #fca5a5;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-align: left;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Loading Spinner */
+        .loader-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(30, 41, 59, 0.85);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loader-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #e95420;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 13px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .welcome-footer {
+            margin-top: 48px;
+            font-size: 11px;
+            color: #64748b;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body class="welcome-bg">
+    <div class="welcome-card">
+        <!-- Spinner Overlay -->
+        <div id="loader" class="loader-overlay">
+            <div class="spinner"></div>
+            <div class="loading-text">Connecting to Strava...</div>
+        </div>
+
+        <!-- Logo -->
+        <div class="logo-container">
+            GFG
+        </div>
+
+        <!-- App Name -->
+        <h1 class="welcome-title">GFG Tracker</h1>
+
+        <!-- Tagline -->
+        <p class="welcome-tagline">
+            Track your fitness, analyze your training, and compete with athletes using Strava.
+        </p>
+
+        <!-- Error Panel -->
+        <div id="error-panel" class="error-alert hidden">
+            <span>⚠️</span>
+            <span id="error-message">Error message details here.</span>
+        </div>
+
+        <!-- Success Panel -->
+        <div id="success-panel" class="error-alert hidden" style="background: rgba(22, 163, 74, 0.1); border-color: rgba(22, 163, 74, 0.25); color: #86efac;">
+            <span>✅</span>
+            <span id="success-message">Success message details here.</span>
+        </div>
+
+        <!-- Connection Button -->
+        <div class="auth-container">
+            <button id="connect-btn" class="strava-main-btn" onclick="triggerAuth()">
+                Connect with Strava
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="welcome-footer">
+            <span>Powered by Strava API</span>
+            <span>Gemini Fitness Group Tracker v1.0.4</span>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            
+            // Check for error parameters
+            const error = params.get('strava_error');
+            if (error) {
+                const errPanel = document.getElementById('error-panel');
+                const errMsg = document.getElementById('error-message');
+                errMsg.textContent = decodeURIComponent(error);
+                errPanel.classList.remove('hidden');
+            }
+
+            // Check for deletion success parameter
+            const deleted = params.get('deleted');
+            if (deleted === 'true') {
+                const successPanel = document.getElementById('success-panel');
+                const successMsg = document.getElementById('success-message');
+                successMsg.textContent = "Your account and all associated data have been permanently deleted.";
+                successPanel.classList.remove('hidden');
+            }
+        });
+
+        // Initiate Auth Redirect
+        function triggerAuth() {
+            document.getElementById('loader').classList.add('show');
+            window.location.href = '/api/athletes/strava/login';
+        }
+    </script>
+</body>
+</html>

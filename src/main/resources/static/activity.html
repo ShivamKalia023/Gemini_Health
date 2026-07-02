@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Fitness Group Tracker - Activity Details</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.1">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .activity-details-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            transition: color 0.2s;
+        }
+        .back-link:hover {
+            color: var(--color-orange);
+        }
+        .activity-header-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+        .activity-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #f3f4f6;
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+        .activity-name-title {
+            font-size: 32px;
+            font-weight: 900;
+            margin: 0 0 8px 0;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+        }
+        .activity-meta-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .meta-dot {
+            color: var(--border-color);
+        }
+        .stats-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .detail-stat-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .detail-stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .detail-stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        .detail-stat-unit {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .stats-layout-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+        .additional-stats-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            color: var(--text-primary);
+        }
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .stats-table tr {
+            border-bottom: 1px solid #f9fafb;
+        }
+        .stats-table tr:last-child {
+            border-bottom: none;
+        }
+        .stats-table td {
+            padding: 10px 0;
+            font-size: 13px;
+        }
+        .stats-table td.label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .stats-table td.value {
+            text-align: right;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .charts-section-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        .detail-chart-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .detail-chart-container {
+            height: 250px;
+            position: relative;
+        }
+        .hidden {
+            display: none !important;
+        }
+        @media (max-width: 768px) {
+            .stats-summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .stats-layout-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <header class="top-nav">
+        <div class="brand">
+            <a href="home.html" style="text-decoration: none; color: inherit;">
+                <h2>GFG Tracker</h2>
+                <span class="subtitle">Gemini Fitness Group</span>
+            </a>
+        </div>
+        <nav class="main-nav">
+            <a href="home.html" class="nav-link">Home</a>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboards</a>
+            <a href="challenges.html" class="nav-link">Challenges</a>
+        </nav>
+        <div class="nav-actions">
+            <button id="strava-connect-btn" class="strava-connect-btn">Connect with Strava</button>
+            <div id="admin-controls" class="admin-controls hidden">
+                <span class="admin-badge">Admin Mode Active</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="activity-details-container">
+        <a href="home.html" id="back-link" class="back-link">&larr; Back to Dashboard</a>
+
+        <!-- Activity Main Info Header -->
+        <div class="activity-header-card">
+            <div id="activity-type-badge" class="activity-type-badge">
+                <span>🏃</span> <span id="badge-text">Run</span>
+            </div>
+            <h1 id="activity-name" class="activity-name-title">Activity Title</h1>
+            <div class="activity-meta-info">
+                <span id="activity-date">Date & Time</span>
+                <span class="meta-dot">•</span>
+                <span id="athlete-attribution">by Athlete Name</span>
+            </div>
+        </div>
+
+        <!-- Four Key Stats Summary Grid -->
+        <div class="stats-summary-grid">
+            <div class="detail-stat-card">
+                <div class="detail-stat-label">Distance</div>
+                <div class="detail-stat-value"><span id="summary-dist">0.0</span> <span class="detail-stat-unit">km</span></div>
+            </div>
+            <div class="detail-stat-card">
+                <div class="detail-stat-label">Moving Time</div>
+                <div class="detail-stat-value" id="summary-time">0h 0m</div>
+            </div>
+            <div class="detail-stat-card">
+                <div class="detail-stat-label">Avg Pace / Speed</div>
+                <div class="detail-stat-value" id="summary-pace">--</div>
+            </div>
+            <div class="detail-stat-card">
+                <div class="detail-stat-label">Elevation Gain</div>
+                <div class="detail-stat-value"><span id="summary-elev">0</span> <span class="detail-stat-unit">m</span></div>
+            </div>
+        </div>
+
+        <!-- Detailed Metrics Grid -->
+        <div class="stats-layout-columns">
+            <div class="additional-stats-card">
+                <div class="card-title">Performance & Cardio Stats</div>
+                <table class="stats-table">
+                    <tr>
+                        <td class="label">Average Heart Rate</td>
+                        <td class="value"><span id="stat-avg-hr">--</span> bpm</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Maximum Heart Rate</td>
+                        <td class="value"><span id="stat-max-hr">--</span> bpm</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Training Impulse (TRIMP)</td>
+                        <td class="value"><span id="stat-trimp">--</span> points</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Estimated Calories</td>
+                        <td class="value"><span id="stat-calories">--</span> kcal</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="additional-stats-card">
+                <div class="card-title">Training Load & Breakdown</div>
+                <table class="stats-table">
+                    <tr>
+                        <td class="label">Elapsed Time</td>
+                        <td class="value" id="stat-elapsed-time">0h 0m</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Average Speed</td>
+                        <td class="value"><span id="stat-avg-speed">--</span> km/h</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Average Watts (Cycling)</td>
+                        <td class="value"><span id="stat-avg-watts">--</span> W</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Source</td>
+                        <td class="value" id="stat-source">--</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Fitness (CTL)</td>
+                        <td class="value"><span id="stat-ctl">--</span> points</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Fatigue (ATL)</td>
+                        <td class="value"><span id="stat-atl">--</span> points</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Form (TSB)</td>
+                        <td class="value"><span id="stat-tsb">--</span> points</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Training Status</td>
+                        <td class="value" id="stat-training-status">--</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sensor Stream Graphs (Only shown for GPX/detailed workouts) -->
+        <div class="charts-section-grid">
+            <div id="chart-card-elevation" class="detail-chart-card hidden">
+                <div class="card-title">Elevation Profile</div>
+                <div class="detail-chart-container">
+                    <canvas id="elevationProfileChart"></canvas>
+                </div>
+            </div>
+
+            <div id="chart-card-hr" class="detail-chart-card hidden">
+                <div class="card-title">Heart Rate Analysis</div>
+                <div class="detail-chart-container">
+                    <canvas id="hrProfileChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/activity.js"></script>
+</body>
+</html>

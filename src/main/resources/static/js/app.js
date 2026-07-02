@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const lastUpdatedTicker = document.getElementById('last-updated-ticker');
 
     let currentAthleteId = null;
+    let currentChartRange = '7d';
+    let currentCustomStart = '';
+    let currentCustomEnd = '';
 
     if (isAdmin) {
         adminControls.classList.remove('hidden');
@@ -175,6 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const el = document.createElement('div');
                 el.className = 'feed-item';
+                el.style.cursor = 'pointer';
+                el.addEventListener('click', () => {
+                    window.location.href = 'activity.html?id=' + act.id;
+                });
                 el.innerHTML = `
                     <div style="margin-right: 12px;">${avatar}</div>
                     <div class="feed-item-content">
@@ -199,6 +206,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function updateChartForRange(athleteId, rangeType, customStart, customEnd) {
+        let start = '';
+        let end = '';
+        
+        const today = new Date();
+        const endStr = today.toISOString().split('T')[0];
+
+        if (rangeType === '7d') {
+            const d = new Date();
+            d.setDate(today.getDate() - 6);
+            start = d.toISOString().split('T')[0];
+            end = endStr;
+        } else if (rangeType === '1m') {
+            const d = new Date();
+            d.setDate(today.getDate() - 29);
+            start = d.toISOString().split('T')[0];
+            end = endStr;
+        } else if (rangeType === '3m') {
+            const d = new Date();
+            d.setDate(today.getDate() - 89);
+            start = d.toISOString().split('T')[0];
+            end = endStr;
+        } else if (rangeType === 'custom') {
+            start = customStart;
+            end = customEnd || endStr;
+        }
+
+        try {
+            const res = await fetch(`/api/athletes/${athleteId}/performance?startDate=${start}&endDate=${end}`);
+            if (!res.ok) throw new Error('Failed to fetch performance timeline');
+            const timelineData = await res.json();
+            
+            const hasActivity = timelineData.some(pt => pt.activityCount > 0);
+            const emptyState = document.getElementById('chart-empty-state');
+            const canvasContainer = document.getElementById('chart-canvas-container');
+
+            if (!hasActivity) {
+                if (emptyState) emptyState.classList.remove('hidden');
+                if (canvasContainer) canvasContainer.classList.add('hidden');
+            } else {
+                if (emptyState) emptyState.classList.add('hidden');
+                if (canvasContainer) canvasContainer.classList.remove('hidden');
+            }
+
+            if (performanceChart) {
+                updatePerformanceChart(performanceChart, timelineData);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
     async function openAthleteDashboard(athlete) {
         currentAthleteId = athlete.id;
         const avatarEl = document.getElementById('athlete-avatar');
@@ -210,28 +269,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // Fetch Activities & Performance
-        const [resAct, resPerf] = await Promise.all([
-            fetch(`/api/athletes/${athlete.id}/activities`),
-            fetch(`/api/athletes/${athlete.id}/performance`)
-        ]);
-
+        // Fetch Activities
+        const resAct = await fetch(`/api/athletes/${athlete.id}/activities`);
         const activities = resAct.ok ? await resAct.json() : [];
-        const timeline = resPerf.ok ? await resPerf.json() : [];
 
         // Calculate Stats
         let sumDist = 0;
         let sumTime = 0;
         let sumElev = 0;
+        
         let maxRun = 0;
+        let maxRide = 0;
+        let minPace = Infinity; // seconds per km
+        let maxSpeed = 0; // km/h
         
         activities.forEach(a => {
             sumDist += (a.distance || 0);
             sumTime += (a.movingTime || 0);
             sumElev += (a.totalElevationGain || 0);
-            if (a.type && a.type.toLowerCase().includes('run')) {
+            
+            const isRun = a.type && a.type.toLowerCase().includes('run');
+            const isRide = a.type && (a.type.toLowerCase().includes('ride') || a.type.toLowerCase().includes('cycle'));
+            
+            if (isRun) {
                 if ((a.distance || 0) > maxRun) {
-                    maxRun = (a.distance || 0);
+                    maxRun = a.distance;
+                }
+                if (a.movingTime && a.distance > 0) {
+                    const pace = a.movingTime / a.distance; // secs per km
+                    if (pace < minPace) {
+                        minPace = pace;
+                    }
+                }
+            } else if (isRide) {
+                if ((a.distance || 0) > maxRide) {
+                    maxRide = a.distance;
+                }
+                if (a.averageSpeed && a.averageSpeed > maxSpeed) {
+                    maxSpeed = a.averageSpeed;
                 }
             }
         });
@@ -240,19 +315,47 @@ document.addEventListener('DOMContentLoaded', () => {
         const durM = Math.floor((sumTime % 3600) / 60);
 
         if(document.getElementById('stat-activities')) document.getElementById('stat-activities').textContent = activities.length;
-        if(document.getElementById('stat-longest-run')) document.getElementById('stat-longest-run').textContent = maxRun.toFixed(1) + ' km';
         if(document.getElementById('stat-elevation')) document.getElementById('stat-elevation').textContent = Math.round(sumElev) + ' m';
         if(document.getElementById('stat-moving-time')) document.getElementById('stat-moving-time').textContent = `${durH}h ${durM}m`;
-        
-        let avgPaceStr = '0:00/km';
-        if (sumDist > 0 && sumTime > 0) {
-            const paceSecs = (sumTime / (sumDist)); // seconds per km
-            const pM = Math.floor(paceSecs / 60);
-            const pS = Math.floor(paceSecs % 60);
-            avgPaceStr = `${pM}:${pS.toString().padStart(2, '0')}/km`;
-        }
-        if(document.getElementById('stat-fastest-pace')) document.getElementById('stat-fastest-pace').textContent = avgPaceStr;
         if(document.getElementById('stat-lifetime')) document.getElementById('stat-lifetime').textContent = sumDist.toFixed(1) + ' km';
+
+        // Check if cycling-focused athlete
+        const primarySport = athlete.primarySport ? athlete.primarySport.toLowerCase() : 'run';
+        const isCycling = primarySport.includes('ride') || primarySport.includes('cycle');
+
+        // Dynamically locate stat header labels & icons
+        const longestCardHeader = document.querySelector('.profile-stat-card:nth-of-type(1) .stat-header span:first-child');
+        const longestCardIcon = document.querySelector('.profile-stat-card:nth-of-type(1) .stat-header .stat-icon');
+        const longestCardValue = document.getElementById('stat-longest-run');
+
+        const bestCardHeader = document.querySelector('.profile-stat-card:nth-of-type(2) .stat-header span:first-child');
+        const bestCardIcon = document.querySelector('.profile-stat-card:nth-of-type(2) .stat-header .stat-icon');
+        const bestCardValue = document.getElementById('stat-fastest-pace');
+
+        if (isCycling) {
+            if (longestCardHeader) longestCardHeader.textContent = 'LONGEST RIDE';
+            if (longestCardIcon) longestCardIcon.textContent = '🚴';
+            if (longestCardValue) longestCardValue.textContent = maxRide.toFixed(1) + ' km';
+
+            if (bestCardHeader) bestCardHeader.textContent = 'MAX SPEED';
+            if (bestCardIcon) bestCardIcon.textContent = '⚡';
+            if (bestCardValue) bestCardValue.textContent = (maxSpeed > 0 ? maxSpeed.toFixed(1) : '0.0') + ' km/h';
+        } else {
+            if (longestCardHeader) longestCardHeader.textContent = 'LONGEST RUN';
+            if (longestCardIcon) longestCardIcon.textContent = '🏃';
+            if (longestCardValue) longestCardValue.textContent = maxRun.toFixed(1) + ' km';
+
+            if (bestCardHeader) bestCardHeader.textContent = 'FASTEST PACE';
+            if (bestCardIcon) bestCardIcon.textContent = '⏱️';
+            
+            let paceStr = '0:00/km';
+            if (minPace !== Infinity) {
+                const pM = Math.floor(minPace / 60);
+                const pS = Math.floor(minPace % 60);
+                paceStr = `${pM}:${pS.toString().padStart(2, '0')}/km`;
+            }
+            if (bestCardValue) bestCardValue.textContent = paceStr;
+        }
 
         // Feed Rendering
         const feedList = document.getElementById('athlete-feed-list');
@@ -275,6 +378,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     const el = document.createElement('div');
                     el.className = 'athlete-feed-item';
+                    el.style.cursor = 'pointer';
+                    el.addEventListener('click', () => {
+                        window.location.href = 'activity.html?id=' + act.id;
+                    });
                     el.innerHTML = `
                         <div style="flex-grow: 1;">
                             <div style="font-size: 13px; font-weight: bold; margin-bottom: 4px;">${act.name}</div>
@@ -289,18 +396,393 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (performanceChart) {
-            updatePerformanceChart(performanceChart, timeline);
+        // Setup filter click listeners
+        const filterBtns = document.querySelectorAll('.chart-filter-btn');
+        const customDateInputs = document.getElementById('custom-date-inputs');
+
+        // Apply active class to the button matching currentChartRange
+        filterBtns.forEach(btn => {
+            const range = btn.getAttribute('data-range');
+            if (range === currentChartRange) {
+                btn.classList.add('active');
+                btn.style.background = 'rgba(233, 84, 32, 0.1)';
+                btn.style.color = '#e95420';
+                btn.style.borderColor = 'rgba(233, 84, 32, 0.2)';
+            } else {
+                btn.classList.remove('active');
+                btn.style.background = 'rgba(255,255,255,0.02)';
+                btn.style.color = '#94a3b8';
+                btn.style.borderColor = 'rgba(255,255,255,0.05)';
+            }
+
+            // Remove previous event listeners by cloning
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+        });
+
+        if (currentChartRange === 'custom') {
+            if (customDateInputs) customDateInputs.classList.remove('hidden');
+            if (document.getElementById('custom-start-date')) document.getElementById('custom-start-date').value = currentCustomStart;
+            if (document.getElementById('custom-end-date')) document.getElementById('custom-end-date').value = currentCustomEnd;
+        } else {
+            if (customDateInputs) customDateInputs.classList.add('hidden');
         }
+
+        // Re-bind click events
+        const newFilterBtns = document.querySelectorAll('.chart-filter-btn');
+        newFilterBtns.forEach(btn => {
+            btn.addEventListener('click', async () => {
+                newFilterBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = 'rgba(255,255,255,0.02)';
+                    b.style.color = '#94a3b8';
+                    b.style.borderColor = 'rgba(255,255,255,0.05)';
+                });
+                
+                btn.classList.add('active');
+                btn.style.background = 'rgba(233, 84, 32, 0.1)';
+                btn.style.color = '#e95420';
+                btn.style.borderColor = 'rgba(233, 84, 32, 0.2)';
+
+                const range = btn.getAttribute('data-range');
+                currentChartRange = range;
+
+                if (range === 'custom') {
+                    if (customDateInputs) customDateInputs.classList.remove('hidden');
+                } else {
+                    if (customDateInputs) customDateInputs.classList.add('hidden');
+                    currentCustomStart = '';
+                    currentCustomEnd = '';
+                    await updateChartForRange(athlete.id, range);
+                }
+            });
+        });
+
+        // Set up Custom Date Picker triggers
+        const applyCustomBtn = document.getElementById('apply-custom-date');
+        if (applyCustomBtn) {
+            const newApplyBtn = applyCustomBtn.cloneNode(true);
+            applyCustomBtn.parentNode.replaceChild(newApplyBtn, applyCustomBtn);
+            
+            newApplyBtn.addEventListener('click', async () => {
+                const startDateVal = document.getElementById('custom-start-date').value;
+                const endDateVal = document.getElementById('custom-end-date').value;
+                if (!startDateVal) {
+                    alert('Please select a start date');
+                    return;
+                }
+                currentCustomStart = startDateVal;
+                currentCustomEnd = endDateVal;
+                await updateChartForRange(athlete.id, 'custom', startDateVal, endDateVal);
+            });
+        }
+
+        await updateChartForRange(athlete.id, currentChartRange, currentCustomStart, currentCustomEnd);
     }
 
     // --- Event Listeners ---
 
-    if (stravaConnectBtn) {
-        stravaConnectBtn.addEventListener('click', () => {
-            window.location.href = '/api/athletes/strava/login';
+    // Initialize user profile menu if logged in
+    async function initUserMenu() {
+        if (!stravaConnectBtn) return;
+
+        const athleteIdCookie = document.cookie.split('; ').find(row => row.startsWith('athlete_id='));
+        const athleteId = athleteIdCookie ? athleteIdCookie.split('=')[1] : null;
+
+        if (!athleteId) {
+            // Unauthenticated connect button listener
+            stravaConnectBtn.addEventListener('click', () => {
+                window.location.href = 'welcome.html';
+            });
+            return;
+        }
+
+        // Hide the Connect button
+        stravaConnectBtn.style.display = 'none';
+
+        try {
+            // Fetch athlete details
+            const response = await fetch(`/api/athletes/${athleteId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch athlete');
+            }
+            const athlete = await response.json();
+
+            // Get parent container of the connect button
+            const navActions = stravaConnectBtn.parentElement;
+
+            // Create the user profile menu structure
+            const menuContainer = document.createElement('div');
+            menuContainer.className = 'user-profile-menu';
+            menuContainer.style.position = 'relative';
+            menuContainer.style.display = 'inline-block';
+
+            // Avatar
+            const avatarBtn = document.createElement('button');
+            avatarBtn.className = 'avatar-btn';
+            avatarBtn.style.width = '40px';
+            avatarBtn.style.height = '40px';
+            avatarBtn.style.borderRadius = '50%';
+            avatarBtn.style.border = '2px solid rgba(233, 84, 32, 0.6)';
+            avatarBtn.style.background = '#1e293b';
+            avatarBtn.style.cursor = 'pointer';
+            avatarBtn.style.overflow = 'hidden';
+            avatarBtn.style.display = 'flex';
+            avatarBtn.style.alignItems = 'center';
+            avatarBtn.style.justifyContent = 'center';
+            avatarBtn.style.padding = '0';
+            avatarBtn.style.transition = 'all 0.2s';
+            avatarBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+
+            avatarBtn.addEventListener('mouseenter', () => {
+                avatarBtn.style.transform = 'scale(1.05)';
+                avatarBtn.style.borderColor = '#f97316';
+            });
+            avatarBtn.addEventListener('mouseleave', () => {
+                avatarBtn.style.transform = 'scale(1)';
+                avatarBtn.style.borderColor = 'rgba(233, 84, 32, 0.6)';
+            });
+
+            if (athlete.avatarUrl && athlete.avatarUrl !== 'avatar.png' && !athlete.avatarUrl.includes('placeholder')) {
+                const img = document.createElement('img');
+                img.src = athlete.avatarUrl;
+                img.alt = athlete.name;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                avatarBtn.appendChild(img);
+            } else {
+                const names = athlete.name ? athlete.name.split(' ') : ['A'];
+                const initials = names.map(n => n[0]).slice(0, 2).join('').toUpperCase();
+                const textSpan = document.createElement('span');
+                textSpan.textContent = initials;
+                textSpan.style.color = '#f8fafc';
+                textSpan.style.fontWeight = 'bold';
+                textSpan.style.fontSize = '14px';
+                avatarBtn.appendChild(textSpan);
+            }
+
+            // Dropdown Menu
+            const dropdown = document.createElement('div');
+            dropdown.className = 'profile-dropdown';
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = 'calc(100% + 10px)';
+            dropdown.style.right = '0';
+            dropdown.style.background = '#1e293b';
+            dropdown.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+            dropdown.style.borderRadius = '12px';
+            dropdown.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+            dropdown.style.width = '200px';
+            dropdown.style.zIndex = '1000';
+            dropdown.style.overflow = 'hidden';
+            dropdown.style.opacity = '0';
+            dropdown.style.transform = 'translateY(-10px)';
+            dropdown.style.pointerEvents = 'none';
+            dropdown.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+
+            const createDropdownLink = (text, icon, onClick) => {
+                const link = document.createElement('button');
+                link.style.width = '100%';
+                link.style.padding = '12px 16px';
+                link.style.background = 'transparent';
+                link.style.border = 'none';
+                link.style.color = '#e2e8f0';
+                link.style.fontSize = '14px';
+                link.style.fontWeight = '600';
+                link.style.textAlign = 'left';
+                link.style.cursor = 'pointer';
+                link.style.display = 'flex';
+                link.style.alignItems = 'center';
+                link.style.gap = '10px';
+                link.style.transition = 'all 0.2s';
+                link.innerHTML = `<span>${icon}</span> <span>${text}</span>`;
+                link.addEventListener('mouseenter', () => {
+                    link.style.background = 'rgba(233, 84, 32, 0.08)';
+                    link.style.color = '#ffffff';
+                });
+                link.addEventListener('mouseleave', () => {
+                    link.style.background = 'transparent';
+                    link.style.color = '#e2e8f0';
+                });
+                link.addEventListener('click', onClick);
+                return link;
+            };
+
+            const profileBtn = createDropdownLink('My Profile', '👤', () => {
+                window.location.href = `profile.html?id=${athleteId}`;
+            });
+
+            const logoutBtn = createDropdownLink('Log Out', '🚪', () => {
+                document.cookie = "athlete_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                window.location.href = "welcome.html";
+            });
+
+            const deleteBtn = createDropdownLink('Delete My Account', '⚠️', () => {
+                showDeleteConfirmationModal(athleteId, athlete.name);
+            });
+            deleteBtn.style.color = '#f87171';
+            deleteBtn.addEventListener('mouseenter', () => {
+                deleteBtn.style.background = 'rgba(239, 68, 68, 0.08)';
+                deleteBtn.style.color = '#ef4444';
+            });
+            deleteBtn.addEventListener('mouseleave', () => {
+                deleteBtn.style.background = 'transparent';
+                deleteBtn.style.color = '#f87171';
+            });
+
+            dropdown.appendChild(profileBtn);
+            dropdown.appendChild(logoutBtn);
+            
+            const divider = document.createElement('div');
+            divider.style.height = '1px';
+            divider.style.background = 'rgba(255,255,255,0.05)';
+            dropdown.appendChild(divider);
+            dropdown.appendChild(deleteBtn);
+
+            menuContainer.appendChild(avatarBtn);
+            menuContainer.appendChild(dropdown);
+            navActions.appendChild(menuContainer);
+
+            // Toggle dropdown open/close
+            avatarBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = dropdown.style.opacity === '1';
+                if (isOpen) {
+                    dropdown.style.opacity = '0';
+                    dropdown.style.transform = 'translateY(-10px)';
+                    dropdown.style.pointerEvents = 'none';
+                } else {
+                    dropdown.style.opacity = '1';
+                    dropdown.style.transform = 'translateY(0)';
+                    dropdown.style.pointerEvents = 'auto';
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', () => {
+                dropdown.style.opacity = '0';
+                dropdown.style.transform = 'translateY(-10px)';
+                dropdown.style.pointerEvents = 'none';
+            });
+
+        } catch (err) {
+            console.error('Error loading user menu:', err);
+        }
+    }
+
+    function showDeleteConfirmationModal(athleteId, name) {
+        const backdrop = document.createElement('div');
+        backdrop.style.position = 'fixed';
+        backdrop.style.top = '0';
+        backdrop.style.left = '0';
+        backdrop.style.width = '100vw';
+        backdrop.style.height = '100vh';
+        backdrop.style.background = 'rgba(15, 23, 42, 0.8)';
+        backdrop.style.backdropFilter = 'blur(8px)';
+        backdrop.style.zIndex = '9999';
+        backdrop.style.display = 'flex';
+        backdrop.style.justifyContent = 'center';
+        backdrop.style.alignItems = 'center';
+        backdrop.style.opacity = '0';
+        backdrop.style.transition = 'opacity 0.25s ease-out';
+
+        const card = document.createElement('div');
+        card.style.background = '#1e293b';
+        card.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+        card.style.borderRadius = '16px';
+        card.style.padding = '32px';
+        card.style.width = '90%';
+        card.style.maxWidth = '460px';
+        card.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.5)';
+        card.style.transform = 'scale(0.9)';
+        card.style.transition = 'transform 0.25s ease-out';
+        card.style.fontFamily = "'Outfit', 'Inter', sans-serif";
+
+        card.innerHTML = `
+            <h2 style="color: #ef4444; font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 12px; font-family: 'Outfit', sans-serif; text-transform: uppercase;">Delete Account?</h2>
+            <p style="color: #f8fafc; font-size: 15px; font-weight: 600; margin-bottom: 20px; line-height: 1.5;">This action is permanent and cannot be undone.</p>
+            <div style="background: rgba(15, 23, 42, 0.4); border-radius: 8px; padding: 16px; margin-bottom: 28px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                <p style="color: #94a3b8; font-size: 13px; font-weight: 600; margin-top: 0; margin-bottom: 10px; text-transform: uppercase;">Deleting your account will permanently remove:</p>
+                <ul style="color: #e2e8f0; font-size: 14px; margin: 0; padding-left: 20px; line-height: 1.8;">
+                    <li>Athlete profile</li>
+                    <li>Imported activities</li>
+                    <li>GPX/CSV uploads</li>
+                    <li>Training metrics</li>
+                    <li>Statistics</li>
+                    <li>Leaderboard records</li>
+                    <li>All associated data</li>
+                </ul>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="cancel-delete-btn" style="background: rgba(255,255,255,0.05); color: #f8fafc; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;">Cancel</button>
+                <button id="confirm-delete-btn" style="background: #dc2626; color: #ffffff; border: none; border-radius: 20px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);">Delete Permanently</button>
+            </div>
+        `;
+
+        backdrop.appendChild(card);
+        document.body.appendChild(backdrop);
+
+        setTimeout(() => {
+            backdrop.style.opacity = '1';
+            card.style.transform = 'scale(1)';
+        }, 10);
+
+        const closeModal = () => {
+            backdrop.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                document.body.removeChild(backdrop);
+            }, 250);
+        };
+
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) closeModal();
+        });
+
+        const cancelBtn = card.querySelector('#cancel-delete-btn');
+        cancelBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('mouseenter', () => {
+            cancelBtn.style.background = 'rgba(255,255,255,0.1)';
+        });
+        cancelBtn.addEventListener('mouseleave', () => {
+            cancelBtn.style.background = 'rgba(255,255,255,0.05)';
+        });
+
+        const confirmBtn = card.querySelector('#confirm-delete-btn');
+        confirmBtn.addEventListener('click', async () => {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+            try {
+                const response = await fetch(`/api/athletes/${athleteId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to delete account');
+                }
+
+                document.cookie = "athlete_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
+                window.location.href = '/welcome.html?deleted=true';
+            } catch (err) {
+                console.error('Delete failed:', err);
+                alert(`Error: ${err.message}`);
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Delete Permanently';
+            }
+        });
+        confirmBtn.addEventListener('mouseenter', () => {
+            confirmBtn.style.background = '#b91c1c';
+        });
+        confirmBtn.addEventListener('mouseleave', () => {
+            confirmBtn.style.background = '#dc2626';
         });
     }
+
+    initUserMenu();
 
     if (deleteProfileBtn) {
         deleteProfileBtn.addEventListener('click', async () => {

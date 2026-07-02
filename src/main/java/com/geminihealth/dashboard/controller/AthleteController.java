@@ -21,6 +21,8 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -102,9 +104,12 @@ public class AthleteController {
     }
 
     @GetMapping("/{id}/performance")
-    public ResponseEntity<List<PerformanceService.DailyMetrics>> getAthletePerformance(@PathVariable Long id) {
+    public ResponseEntity<List<PerformanceService.DailyMetrics>> getAthletePerformance(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return athleteRepository.findById(id)
-                .map(athlete -> ResponseEntity.ok(performanceService.getPerformanceTimeline(athlete)))
+                .map(athlete -> ResponseEntity.ok(performanceService.getPerformanceTimeline(athlete, startDate, endDate)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -135,7 +140,7 @@ public class AthleteController {
     @GetMapping("/strava/login")
     public RedirectView stravaLogin(HttpServletRequest request) {
         String baseUrl = getBaseUrl(request);
-        String authUrl = stravaService.getAuthorizationUrl(baseUrl);
+        String authUrl = stravaService.getAuthorizationUrl(baseUrl, "auth");
         return new RedirectView(authUrl);
     }
 
@@ -145,16 +150,22 @@ public class AthleteController {
                                        HttpServletRequest request,
                                        HttpServletResponse response) {
         if (error != null) {
-            return new RedirectView("/?strava_error=" + URLEncoder.encode(error, StandardCharsets.UTF_8));
+            return new RedirectView("/welcome.html?strava_error=" + URLEncoder.encode(error, StandardCharsets.UTF_8));
         }
         if (code == null) {
-            return new RedirectView("/?strava_error=No+code+provided");
+            return new RedirectView("/welcome.html?strava_error=No+code+provided");
         }
         
         try {
             String baseUrl = getBaseUrl(request);
-            AthleteProfile profile = stravaService.handleAuthorizationCallback(code, baseUrl);
+            AthleteProfile profile = stravaService.handleAuthorizationCallback(code, baseUrl, "auth");
             
+            // Set session cookie for athlete
+            Cookie authCookie = new Cookie("athlete_id", profile.getId().toString());
+            authCookie.setPath("/");
+            authCookie.setMaxAge(60 * 60 * 24 * 30); // 30 days
+            response.addCookie(authCookie);
+
             // Check if admin
             if (adminStravaId != null && !adminStravaId.isEmpty() && adminStravaId.equals(profile.getStravaId())) {
                 Cookie adminCookie = new Cookie("admin_token", "true");
@@ -163,10 +174,10 @@ public class AthleteController {
                 response.addCookie(adminCookie);
             }
             
-            return new RedirectView("/?strava_success=true&name=" + URLEncoder.encode(profile.getName(), StandardCharsets.UTF_8));
+            return new RedirectView("/home.html?strava_success=true&name=" + URLEncoder.encode(profile.getName(), StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.error("Strava callback error: " + e.getMessage());
-            return new RedirectView("/?strava_error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
+            return new RedirectView("/welcome.html?strava_error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
         }
     }
 
@@ -215,9 +226,14 @@ public class AthleteController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteAthlete(@PathVariable Long id, @CookieValue(value = "admin_token", required = false) String adminToken) {
-        if (!"true".equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin access required to delete profiles."));
+    public ResponseEntity<?> deleteAthlete(@PathVariable Long id, 
+                                           @CookieValue(value = "admin_token", required = false) String adminToken,
+                                           @CookieValue(value = "athlete_id", required = false) String athleteIdCookie) {
+        boolean isAdmin = "true".equals(adminToken);
+        boolean isSelf = athleteIdCookie != null && athleteIdCookie.equals(id.toString());
+
+        if (!isAdmin && !isSelf) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Unauthorized to delete this profile."));
         }
         try {
             return athleteRepository.findById(id)

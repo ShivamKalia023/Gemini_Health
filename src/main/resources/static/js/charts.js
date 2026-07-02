@@ -10,35 +10,19 @@ function initPerformanceChart(canvasId) {
             labels: [],
             datasets: [
                 {
-                    label: 'Fitness (CTL)',
+                    label: 'Daily Activity',
                     data: [],
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.06)',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 3,
-                    tension: 0.3,
-                    fill: true
-                },
-                {
-                    label: 'Fatigue (ATL)',
-                    data: [],
-                    borderColor: '#dc2626',
-                    backgroundColor: 'rgba(220, 38, 38, 0.03)',
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    pointHoverRadius: 3,
-                    tension: 0.3,
-                    borderDash: [4, 4]
-                },
-                {
-                    label: 'Form (TSB)',
-                    data: [],
-                    borderColor: '#16a34a',
-                    backgroundColor: 'rgba(22, 163, 74, 0.06)',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 3,
+                    borderColor: '#e95420',
+                    backgroundColor: 'rgba(233, 84, 32, 0.06)',
+                    borderWidth: 2.5,
+                    pointRadius: 3.5,
+                    pointBackgroundColor: '#e95420',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: '#f97316',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 2,
                     tension: 0.3,
                     fill: true
                 }
@@ -49,19 +33,73 @@ function initPerformanceChart(canvasId) {
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: {
-                    position: 'top',
-                    labels: { color: '#6b7280', font: { size: 11 } }
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    titleColor: '#ffffff',
+                    titleFont: { size: 12, weight: 'bold', family: "'Outfit', sans-serif" },
+                    bodyColor: '#e2e8f0',
+                    bodyFont: { size: 11, family: "'Inter', sans-serif" },
+                    borderColor: 'rgba(233, 84, 32, 0.3)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        title: function(context) {
+                            const dataIndex = context[0].dataIndex;
+                            const point = context[0].chart.data.datasets[0].rawTimelineData[dataIndex];
+                            if (point) {
+                                // Add 12 hours to avoid timezone shifting issues
+                                const d = new Date(point.date + 'T12:00:00');
+                                return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+                            }
+                            return '';
+                        },
+                        label: function(context) {
+                            const dataIndex = context.dataIndex;
+                            const point = context.chart.data.datasets[0].rawTimelineData[dataIndex];
+                            if (!point) return '';
+
+                            const lines = [];
+                            if (point.activityCount > 0) {
+                                lines.push(`🏃 Activities: ${point.activityCount}`);
+                                lines.push(`📏 Distance: ${point.totalDistance.toFixed(1)} km`);
+                                
+                                const durH = Math.floor(point.totalMovingTime / 3600);
+                                const durM = Math.floor((point.totalMovingTime % 3600) / 60);
+                                const timeStr = durH > 0 ? `${durH}h ${durM}m` : `${durM}m`;
+                                lines.push(`⏳ Duration: ${timeStr}`);
+                                
+                                if (point.totalElevationGain > 0) {
+                                    lines.push(`🏔️ Elevation: ${Math.round(point.totalElevationGain)} m`);
+                                }
+                            } else {
+                                lines.push('😴 Status: Rest Day');
+                            }
+                            return lines;
+                        }
+                    }
                 }
             },
             scales: {
                 x: {
-                    grid: { color: '#f1f5f9' },
-                    ticks: { color: '#6b7280', font: { size: 10 }, maxTicksLimit: 10 }
+                    grid: { display: false },
+                    ticks: { color: '#94a3b8', font: { size: 10, family: "'Inter', sans-serif" }, maxTicksLimit: 12 }
                 },
                 y: {
-                    grid: { color: '#f1f5f9' },
-                    ticks: { color: '#6b7280', font: { size: 10 } }
+                    min: 0,
+                    max: 1.2,
+                    ticks: {
+                        stepSize: 1,
+                        callback: function(value) {
+                            if (value === 0) return 'Rest';
+                            if (value === 1) return 'Active';
+                            return '';
+                        },
+                        color: '#94a3b8',
+                        font: { size: 10, family: "'Inter', sans-serif", weight: '600' }
+                    },
+                    grid: { color: 'rgba(255, 255, 255, 0.03)' }
                 }
             }
         }
@@ -107,18 +145,23 @@ function updatePerformanceChart(chart, timeline) {
     if (!timeline || timeline.length === 0) {
         chart.data.labels = [];
         chart.data.datasets[0].data = [];
-        chart.data.datasets[1].data = [];
-        chart.data.datasets[2].data = [];
+        chart.data.datasets[0].rawTimelineData = [];
         chart.update();
         return;
     }
+    
     chart.data.labels = timeline.map(pt => {
-        const d = new Date(pt.date);
-        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        // Add 12 hours to avoid timezone shifts
+        const d = new Date(pt.date + 'T12:00:00');
+        if (timeline.length <= 7) {
+            return d.toLocaleDateString(undefined, { weekday: 'short' });
+        } else {
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
     });
-    chart.data.datasets[0].data = timeline.map(pt => pt.fitness);
-    chart.data.datasets[1].data = timeline.map(pt => pt.fatigue);
-    chart.data.datasets[2].data = timeline.map(pt => pt.form);
+    
+    chart.data.datasets[0].rawTimelineData = timeline;
+    chart.data.datasets[0].data = timeline.map(pt => pt.activityCount > 0 ? 1 : 0);
     chart.update();
 }
 

@@ -67,6 +67,12 @@ public class PerformanceService {
         public double form;    // TSB
         public String status;  // Fresh, Optimal, Overreaching, Detraining
 
+        // Aggregated fields for daily activities
+        public int activityCount;
+        public double totalDistance; // km
+        public double totalMovingTime; // seconds
+        public double totalElevationGain; // meters
+
         public DailyMetrics(LocalDate date, double trimp, double fitness, double fatigue, double form, String status) {
             this.date = date;
             this.trimp = trimp;
@@ -78,30 +84,57 @@ public class PerformanceService {
     }
 
     /**
-     * Computes the 90-day training load metrics (Fitness, Fatigue, Form) for an athlete.
+     * Computes the training load metrics for an athlete over a default 90-day window.
      */
     public List<DailyMetrics> getPerformanceTimeline(AthleteProfile athlete) {
+        return getPerformanceTimeline(athlete, LocalDate.now().minusDays(90), LocalDate.now());
+    }
+
+    /**
+     * Computes the training load metrics for an athlete over a custom date range.
+     * Computes background warm-up buffers (120 days prior) to ensure CTL/ATL are accurate.
+     */
+    public List<DailyMetrics> getPerformanceTimeline(AthleteProfile athlete, LocalDate requestStartDate, LocalDate requestEndDate) {
+        if (requestEndDate == null) {
+            requestEndDate = LocalDate.now();
+        }
+        if (requestStartDate == null) {
+            requestStartDate = requestEndDate.minusDays(6);
+        }
+
         List<Activity> activities = activityRepository.findByAthleteIdOrderByStartDateDesc(athlete.getId());
         
-        // Setup date range: from 120 days ago to today (we need historical buffers to calculate CTL/ATL accurately for the last 90 days)
-        LocalDate today = LocalDate.now();
-        LocalDate startDate = today.minusDays(120);
+        // Setup date range: 120 days ago to requestEndDate to calculate CTL/ATL accurately
+        LocalDate calculationStartDate = requestStartDate.minusDays(120);
         
-        // Map to store daily TRIMP sum
+        // Map to store daily TRIMP sum and aggregated metrics
         Map<LocalDate, Double> dailyTrimp = new HashMap<>();
-        LocalDate cur = startDate;
-        while (!cur.isAfter(today)) {
+        Map<LocalDate, Integer> dailyCount = new HashMap<>();
+        Map<LocalDate, Double> dailyDistance = new HashMap<>();
+        Map<LocalDate, Double> dailyMovingTime = new HashMap<>();
+        Map<LocalDate, Double> dailyElevation = new HashMap<>();
+
+        LocalDate cur = calculationStartDate;
+        while (!cur.isAfter(requestEndDate)) {
             dailyTrimp.put(cur, 0.0);
+            dailyCount.put(cur, 0);
+            dailyDistance.put(cur, 0.0);
+            dailyMovingTime.put(cur, 0.0);
+            dailyElevation.put(cur, 0.0);
             cur = cur.plusDays(1);
         }
 
-        // Aggregate activity TRIMP into daily buckets
+        // Aggregate activity stats into daily buckets
         for (Activity activity : activities) {
             LocalDate activityDate = activity.getStartDate().toLocalDate();
             if (dailyTrimp.containsKey(activityDate)) {
-                // If TRIMP is not set, calculate it on the fly
                 int score = activity.getTrimp() != null ? activity.getTrimp() : calculateTrimp(activity, athlete);
                 dailyTrimp.put(activityDate, dailyTrimp.get(activityDate) + score);
+                
+                dailyCount.put(activityDate, dailyCount.get(activityDate) + 1);
+                dailyDistance.put(activityDate, dailyDistance.get(activityDate) + (activity.getDistance() != null ? activity.getDistance() : 0.0));
+                dailyMovingTime.put(activityDate, dailyMovingTime.get(activityDate) + (activity.getMovingTime() != null ? activity.getMovingTime() : 0.0));
+                dailyElevation.put(activityDate, dailyElevation.get(activityDate) + (activity.getTotalElevationGain() != null ? activity.getTotalElevationGain() : 0.0));
             }
         }
 
@@ -109,37 +142,35 @@ public class PerformanceService {
         double ctl = 0.0; // Chronic Training Load (42 days)
         double atl = 0.0; // Acute Training Load (7 days)
         
-        cur = startDate;
-        while (!cur.isAfter(today)) {
+        cur = calculationStartDate;
+        while (!cur.isAfter(requestEndDate)) {
             double trimp = dailyTrimp.get(cur);
             
-            // EWMA formula: CTL_today = CTL_yesterday + (TRIMP - CTL_yesterday)/42
             ctl = ctl + (trimp - ctl) / 42.0;
-            
-            // EWMA formula: ATL_today = ATL_yesterday + (TRIMP - ATL_yesterday)/7
             atl = atl + (trimp - atl) / 7.0;
-            
-            // Form (TSB) is yesterday's fitness minus yesterday's fatigue
-            // Often simplified as: Form = Fitness - Fatigue
             double form = ctl - atl;
             
-            // Determine training zone status
             String status = "Neutral";
             if (form > 15) {
-                status = "Fresh"; // Tapered/Fresh
+                status = "Fresh";
             } else if (form >= -15 && form <= 5) {
-                status = "Optimal"; // Optimal training zone
+                status = "Optimal";
             } else if (form < -30) {
-                status = "Overreaching"; // High risk of injury/overtraining
+                status = "Overreaching";
             } else if (form < -15) {
-                status = "Warning"; // Transitioning to overreaching
+                status = "Warning";
             } else if (form > 5 && form <= 15) {
-                status = "Detraining"; // Transitioning to fresh/losing fitness
+                status = "Detraining";
             }
 
-            // Only add to timeline if it's within the last 90 days (to allow 30 days of initialization buffer)
-            if (!cur.isBefore(today.minusDays(90))) {
-                timeline.add(new DailyMetrics(cur, trimp, ctl, atl, form, status));
+            // Only add to timeline if it's within the requested range
+            if (!cur.isBefore(requestStartDate) && !cur.isAfter(requestEndDate)) {
+                DailyMetrics metrics = new DailyMetrics(cur, trimp, ctl, atl, form, status);
+                metrics.activityCount = dailyCount.get(cur);
+                metrics.totalDistance = Math.round(dailyDistance.get(cur) * 10.0) / 10.0;
+                metrics.totalMovingTime = Math.round(dailyMovingTime.get(cur));
+                metrics.totalElevationGain = Math.round(dailyElevation.get(cur));
+                timeline.add(metrics);
             }
 
             cur = cur.plusDays(1);

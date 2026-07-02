@@ -30,6 +30,9 @@ public class DashboardController {
     @Autowired
     private ChallengeRepository challengeRepository;
 
+    @Autowired
+    private com.geminihealth.dashboard.service.PerformanceService performanceService;
+
     @GetMapping("/feed")
     public ResponseEntity<List<Activity>> getGlobalFeed() {
         return ResponseEntity.ok(activityRepository.findTop50ByOrderByStartDateDesc());
@@ -75,5 +78,44 @@ public class DashboardController {
     @GetMapping("/challenges")
     public ResponseEntity<List<Challenge>> getChallenges() {
         return ResponseEntity.ok(challengeRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")));
+    }
+
+    @GetMapping("/activities/{id}")
+    public ResponseEntity<Map<String, Object>> getActivityById(@PathVariable Long id) {
+        java.util.Optional<Activity> activityOpt = activityRepository.findById(id);
+        if (activityOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Activity activity = activityOpt.get();
+        Map<String, Object> response = new HashMap<>();
+        response.put("activity", activity);
+
+        try {
+            AthleteProfile athlete = activity.getAthlete();
+            List<com.geminihealth.dashboard.service.PerformanceService.DailyMetrics> timeline = 
+                    performanceService.getPerformanceTimeline(athlete);
+
+            java.time.LocalDate activityDate = activity.getStartDate().toLocalDate();
+            java.util.Optional<com.geminihealth.dashboard.service.PerformanceService.DailyMetrics> metricsOnDay = timeline.stream()
+                    .filter(m -> m.date.equals(activityDate))
+                    .findFirst();
+
+            if (metricsOnDay.isPresent()) {
+                response.put("ctl", metricsOnDay.get().fitness);
+                response.put("atl", metricsOnDay.get().fatigue);
+                response.put("tsb", metricsOnDay.get().form);
+                response.put("trainingStatus", metricsOnDay.get().status);
+            } else {
+                response.put("ctl", null);
+                response.put("atl", null);
+                response.put("tsb", null);
+                response.put("trainingStatus", null);
+            }
+        } catch (Exception e) {
+            // Ignore error and fall back
+        }
+
+        return ResponseEntity.ok(response);
     }
 }
