@@ -43,6 +43,9 @@ public class StravaService implements CommandLineRunner {
     @Value("${strava.client-secret:}")
     private String clientSecret;
 
+    @org.springframework.beans.factory.annotation.Value("${admin.strava-id:}")
+    private String adminStravaId;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Override
@@ -153,9 +156,11 @@ public class StravaService implements CommandLineRunner {
             athlete.setWeeklyDistanceGoal(50.0);
         }
         
-        // Security: Default all users to USER and PENDING
-        // Administrators must be manually promoted directly in the database.
-        if (athlete.getRole() == null || athlete.getStatus() == null) {
+        // Security: Hardcoded Admin Assignment
+        if (adminStravaId != null && !adminStravaId.isEmpty() && adminStravaId.equals(athlete.getStravaId())) {
+            athlete.setRole(AthleteProfile.Role.ADMIN);
+            athlete.setStatus(AthleteProfile.Status.APPROVED);
+        } else if (athlete.getRole() == null || athlete.getStatus() == null) {
             athlete.setRole(AthleteProfile.Role.USER);
             athlete.setStatus(AthleteProfile.Status.PENDING);
         }

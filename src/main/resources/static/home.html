@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemini Fitness Group Tracker - Home</title>
-    <link rel="stylesheet" href="css/style.css?v=1.0.1">
+    <link rel="stylesheet" href="css/style.css?v=1.0.10">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -21,12 +21,12 @@
             <a href="dashboard.html" class="nav-link">Dashboard</a>
             <a href="leaderboard.html" class="nav-link">Leaderboards</a>
             <a href="challenges.html" class="nav-link">Challenges</a>
+            <a href="dashboard.html" class="nav-link">Feed</a>
         </nav>
-        <div class="nav-actions">
-            <button id="strava-connect-btn" class="strava-connect-btn">Connect with Strava</button>
-            <div id="admin-controls" class="admin-controls hidden">
-                <span class="admin-badge">Admin Mode Active</span>
-            </div>
+        <div class="nav-right-container" style="display: flex; align-items: center; gap: 16px;">
+            <div id="last-updated-ticker" style="font-size: 12px; color: #94a3b8; font-weight: 500;" class="last-updated-text hidden-mobile"></div>
+            <div class="nav-actions">
+        </div>
         </div>
     </header>
 
@@ -131,6 +131,6 @@
     </div>
     
     <script src="js/charts.js?v=1.0.1"></script>
-    <script src="js/app.js?v=1.0.4"></script>
+    <script src="js/app.js?v=1.0.9"></script>
 </body>
 </html>

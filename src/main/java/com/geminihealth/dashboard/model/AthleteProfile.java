@@ -51,6 +51,7 @@ public class AthleteProfile {
     private Double weight; // in kg
 
     @OneToMany(mappedBy = "athlete", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Activity> activities = new ArrayList<>();
 
     private String email;

@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // DOM Elements
-    const adminControls = document.getElementById('admin-controls');
     const leaderboardList = document.getElementById('leaderboard-list');
     const globalFeedList = document.getElementById('global-feed-list');
     const challengesList = document.getElementById('challenges-list');
@@ -41,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCustomEnd = '';
 
     if (isAdmin) {
-        adminControls.classList.remove('hidden');
         document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
     }
 
@@ -49,13 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!lastUpdatedTicker) return;
         const now = new Date();
         const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const text = `LAST UPDATED: ${timeString}`;
-        // Duplicate text many times to ensure seamless infinite scroll
-        let html = '';
-        for (let i = 0; i < 10; i++) {
-            html += `<span>${text}</span>`;
-        }
-        lastUpdatedTicker.innerHTML = html;
+        lastUpdatedTicker.innerHTML = `Last Updated: ${timeString}`;
     }
 
     async function loadChallenges() {
@@ -412,21 +404,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize user profile menu if logged in
     async function initUserMenu() {
-        if (!stravaConnectBtn) return;
+        const navActions = document.querySelector('.nav-actions');
+        if (!navActions) return;
 
         const athleteIdCookie = document.cookie.split('; ').find(row => row.startsWith('athlete_id='));
         const athleteId = athleteIdCookie ? athleteIdCookie.split('=')[1] : null;
 
         if (!athleteId) {
-            // Unauthenticated connect button listener
-            stravaConnectBtn.addEventListener('click', () => {
-                window.location.href = 'welcome.html';
+            // Unauthenticated: Inject Connect with Strava Button
+            navActions.innerHTML = '';
+            const connectBtn = document.createElement('button');
+            connectBtn.id = 'strava-connect-btn';
+            connectBtn.className = 'strava-connect-btn';
+            connectBtn.textContent = 'Connect with Strava';
+            connectBtn.addEventListener('click', () => {
+                window.location.href = '/api/auth/strava';
             });
+            navActions.appendChild(connectBtn);
+
+            // Unauthenticated connect button listener (only applies on welcome page)
+            const welcomeBtn = document.querySelector('.strava-auth-btn');
+            if (welcomeBtn) {
+                welcomeBtn.addEventListener('click', () => {
+                    window.location.href = '/api/auth/strava';
+                });
+            }
             return;
         }
-
-        // Hide the Connect button
-        stravaConnectBtn.style.display = 'none';
 
         try {
             // Fetch athlete details
@@ -436,8 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const athlete = await response.json();
 
-            // Get parent container of the connect button
-            const navActions = stravaConnectBtn.parentElement;
+            navActions.innerHTML = ''; // Clear container before adding avatar
 
             // Create the user profile menu structure
             const menuContainer = document.createElement('div');
@@ -496,10 +499,10 @@ document.addEventListener('DOMContentLoaded', () => {
             dropdown.style.position = 'absolute';
             dropdown.style.top = 'calc(100% + 10px)';
             dropdown.style.right = '0';
-            dropdown.style.background = '#1e293b';
-            dropdown.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+            dropdown.style.background = 'var(--bg-card, #ffffff)';
+            dropdown.style.border = '1px solid var(--border-color, #e5e7eb)';
             dropdown.style.borderRadius = '12px';
-            dropdown.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+            dropdown.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
             dropdown.style.width = '200px';
             dropdown.style.zIndex = '1000';
             dropdown.style.overflow = 'hidden';
@@ -514,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.style.padding = '12px 16px';
                 link.style.background = 'transparent';
                 link.style.border = 'none';
-                link.style.color = '#e2e8f0';
+                link.style.color = 'var(--text-primary, #1a1a1a)';
                 link.style.fontSize = '14px';
                 link.style.fontWeight = '600';
                 link.style.textAlign = 'left';
@@ -526,11 +529,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.innerHTML = `<span>${icon}</span> <span>${text}</span>`;
                 link.addEventListener('mouseenter', () => {
                     link.style.background = 'rgba(233, 84, 32, 0.08)';
-                    link.style.color = '#ffffff';
+                    link.style.color = 'var(--color-orange, #e95420)';
                 });
                 link.addEventListener('mouseleave', () => {
                     link.style.background = 'transparent';
-                    link.style.color = '#e2e8f0';
+                    link.style.color = 'var(--text-primary, #1a1a1a)';
                 });
                 link.addEventListener('click', onClick);
                 return link;
@@ -538,6 +541,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const profileBtn = createDropdownLink('My Profile', '👤', () => {
                 window.location.href = `profile.html?id=${athleteId}`;
+            });
+
+            const adminBtn = createDropdownLink('Admin Panel', '🛡️', () => {
+                window.location.href = 'admin.html';
             });
 
             const logoutBtn = createDropdownLink('Log Out', '🚪', () => {
@@ -549,22 +556,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const deleteBtn = createDropdownLink('Delete My Account', '⚠️', () => {
                 showDeleteConfirmationModal(athleteId, athlete.name);
             });
-            deleteBtn.style.color = '#f87171';
+            deleteBtn.style.color = 'var(--color-red, #dc2626)';
             deleteBtn.addEventListener('mouseenter', () => {
-                deleteBtn.style.background = 'rgba(239, 68, 68, 0.08)';
-                deleteBtn.style.color = '#ef4444';
+                deleteBtn.style.background = 'rgba(220, 38, 38, 0.08)';
+                deleteBtn.style.color = '#b91c1c';
             });
             deleteBtn.addEventListener('mouseleave', () => {
                 deleteBtn.style.background = 'transparent';
-                deleteBtn.style.color = '#f87171';
+                deleteBtn.style.color = 'var(--color-red, #dc2626)';
             });
 
+            if (athlete.role === 'ADMIN') {
+                dropdown.appendChild(adminBtn);
+            }
             dropdown.appendChild(profileBtn);
             dropdown.appendChild(logoutBtn);
             
             const divider = document.createElement('div');
             divider.style.height = '1px';
-            divider.style.background = 'rgba(255,255,255,0.05)';
+            divider.style.background = 'var(--border-color, #e5e7eb)';
             dropdown.appendChild(divider);
             dropdown.appendChild(deleteBtn);
 
@@ -784,20 +794,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (currentPath.includes('challenges.html')) {
         if (typeof loadChallenges === 'function') loadChallenges();
     } else if (currentPath.includes('dashboard.html')) {
-        if (typeof loadGlobalFeed === 'function') {
-            loadGlobalFeed().then(() => {
-                if (typeof updateTickerTime === 'function') updateTickerTime();
-            });
-        }
+        if (typeof loadGlobalFeed === 'function') loadGlobalFeed();
     } else {
         // Default (index.html or /)
         if (typeof loadLeaderboard === 'function') loadLeaderboard();
-        if (typeof loadGlobalFeed === 'function') {
-            loadGlobalFeed().then(() => {
-                if (typeof updateTickerTime === 'function') updateTickerTime();
-            });
-        }
+        if (typeof loadGlobalFeed === 'function') loadGlobalFeed();
     }
+    
+    // Update ticker unconditionally since it's now in the global navbar
+    if (typeof updateTickerTime === 'function') updateTickerTime();
 });
 
 window.globalFilterType = 'all';
@@ -815,15 +820,36 @@ function applyFeedFiltersAndSort(activities, type, sort) {
     } else {
         filtered = filtered.filter(act => {
             const actType = (act.type || '').toLowerCase();
-            if (type === 'run') return actType.includes('run');
-            if (type === 'walk') return actType.includes('walk');
-            if (type === 'hike') return actType.includes('hike');
-            if (type === 'ride') return actType.includes('ride') || actType.includes('cycle');
-            if (type === 'swim') return actType.includes('swim');
-            if (type === 'workout') return actType.includes('workout');
-            if (type === 'row') return actType.includes('row');
-            if (type === 'virtual ride') return actType.includes('virtualride') || actType.includes('virtual ride');
-            if (type === 'virtual run') return actType.includes('virtualrun') || actType.includes('virtual run');
+            
+            // Comprehensive normalization mapping for Strava activity types
+            const runTypes = ['run', 'trailrun', 'running'];
+            const rideTypes = ['ride', 'mountainbikeride', 'gravelride', 'ebikeride', 'emountainbikeride', 'handcycle', 'velomobile', 'cycling', 'biking'];
+            const walkTypes = ['walk', 'walking'];
+            const hikeTypes = ['hike', 'hiking'];
+            const swimTypes = ['swim', 'swimming'];
+            const workoutTypes = ['workout', 'weighttraining', 'crossfit', 'highintensityintervaltraining', 'pilates', 'yoga', 'stairstepper', 'elliptical', 'gym'];
+            const rowTypes = ['rowing', 'row', 'virtualrow'];
+            const vRunTypes = ['virtualrun'];
+            const vRideTypes = ['virtualride'];
+            
+            if (type === 'run') return runTypes.includes(actType);
+            if (type === 'ride') return rideTypes.includes(actType);
+            if (type === 'walk') return walkTypes.includes(actType);
+            if (type === 'hike') return hikeTypes.includes(actType);
+            if (type === 'swim') return swimTypes.includes(actType);
+            if (type === 'workout') return workoutTypes.includes(actType);
+            if (type === 'row') return rowTypes.includes(actType);
+            if (type === 'virtual run') return vRunTypes.includes(actType);
+            if (type === 'virtual ride') return vRideTypes.includes(actType);
+            
+            if (type === 'other') {
+                const allMapped = [
+                    ...runTypes, ...rideTypes, ...walkTypes, ...hikeTypes,
+                    ...swimTypes, ...workoutTypes, ...rowTypes, ...vRunTypes, ...vRideTypes
+                ];
+                return !allMapped.includes(actType);
+            }
+            
             return actType === type;
         });
     }
@@ -960,33 +986,13 @@ window.renderProfileFeed = function() {
     });
 };
 
-function executeWithLoading(btn, action) {
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.style.opacity = '0.7';
-    btn.style.cursor = 'not-allowed';
-    btn.innerHTML = '<span style="display:inline-block; width:12px; height:12px; border:2px solid rgba(255,255,255,0.3); border-radius:50%; border-top-color:#fff; animation:spin 1s ease-in-out infinite; margin-right:6px;"></span>Loading...';
-    
-    // Create animation style if it doesn't exist
-    if (!document.getElementById('spinner-style')) {
-        const style = document.createElement('style');
-        style.id = 'spinner-style';
-        style.innerHTML = '@keyframes spin { to { transform: rotate(360deg); } }';
-        document.head.appendChild(style);
-    }
-    
-    // Simulate network delay and execute logic
-    setTimeout(() => {
-        action();
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.style.cursor = 'pointer';
-        btn.innerHTML = originalText;
-    }, 400);
-}
+
 
 // Global initialization function to ensure we attach after elements are ready
 function initFilters() {
+    if (window.filtersInitialized) return;
+    window.filtersInitialized = true;
+
     // Global Feed Listeners
     const dbType = document.getElementById('dashboard-feed-type') || document.getElementById('home-feed-type');
     const dbSort = document.getElementById('dashboard-feed-sort') || document.getElementById('home-feed-sort');
@@ -995,23 +1001,19 @@ function initFilters() {
 
     if (dbApply) {
         dbApply.addEventListener('click', () => {
-            executeWithLoading(dbApply, () => {
-                if (dbType) window.globalFilterType = dbType.value;
-                if (dbSort) window.globalFilterSort = dbSort.value;
-                window.renderGlobalFeed();
-            });
+            if (dbType) window.globalFilterType = dbType.value;
+            if (dbSort) window.globalFilterSort = dbSort.value;
+            window.renderGlobalFeed();
         });
     }
     
     if (dbReset) {
         dbReset.addEventListener('click', () => {
-            executeWithLoading(dbReset, () => {
-                window.globalFilterType = 'all';
-                window.globalFilterSort = 'newest';
-                if(dbType) dbType.value = 'all';
-                if(dbSort) dbSort.value = 'newest';
-                window.renderGlobalFeed();
-            });
+            window.globalFilterType = 'all';
+            window.globalFilterSort = 'newest';
+            if(dbType) dbType.value = 'all';
+            if(dbSort) dbSort.value = 'newest';
+            window.renderGlobalFeed();
         });
     }
 
@@ -1023,23 +1025,19 @@ function initFilters() {
 
     if (pfApply) {
         pfApply.addEventListener('click', () => {
-            executeWithLoading(pfApply, () => {
-                if (pfType) window.profileFilterType = pfType.value;
-                if (pfSort) window.profileFilterSort = pfSort.value;
-                window.renderProfileFeed();
-            });
+            if (pfType) window.profileFilterType = pfType.value;
+            if (pfSort) window.profileFilterSort = pfSort.value;
+            window.renderProfileFeed();
         });
     }
 
     if (pfReset) {
         pfReset.addEventListener('click', () => {
-            executeWithLoading(pfReset, () => {
-                window.profileFilterType = 'all';
-                window.profileFilterSort = 'newest';
-                if(pfType) pfType.value = 'all';
-                if(pfSort) pfSort.value = 'newest';
-                window.renderProfileFeed();
-            });
+            window.profileFilterType = 'all';
+            window.profileFilterSort = 'newest';
+            if(pfType) pfType.value = 'all';
+            if(pfSort) pfSort.value = 'newest';
+            window.renderProfileFeed();
         });
     }
 }
