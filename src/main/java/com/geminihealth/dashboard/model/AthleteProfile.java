@@ -3,10 +3,20 @@ package com.geminihealth.dashboard.model;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "athlete_profile")
 public class AthleteProfile {
+
+    public enum Role {
+        USER, ADMIN
+    }
+
+    public enum Status {
+        PENDING, APPROVED, REJECTED
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,6 +52,38 @@ public class AthleteProfile {
 
     @OneToMany(mappedBy = "athlete", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Activity> activities = new ArrayList<>();
+
+    private String email;
+
+    @Enumerated(EnumType.STRING)
+    private Role role = Role.USER;
+
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.PENDING;
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "approved_by")
+    private String approvedBy;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
 
     // Constructors
     public AthleteProfile() {}
@@ -165,6 +207,28 @@ public class AthleteProfile {
     public void setWeight(Double weight) {
         this.weight = weight;
     }
+
+    
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
+
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public LocalDateTime getApprovedAt() { return approvedAt; }
+    public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
+
+    public String getApprovedBy() { return approvedBy; }
+    public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
 
     public List<Activity> getActivities() {
         return activities;

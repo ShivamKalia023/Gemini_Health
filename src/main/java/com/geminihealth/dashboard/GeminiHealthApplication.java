@@ -8,4 +8,4 @@ public class GeminiHealthApplication {
     public static void main(String[] args) {
         SpringApplication.run(GeminiHealthApplication.class, args);
     }
-}
+}   

@@ -123,7 +123,33 @@
                             </div>
                         </div>
                         <div class="chart-card profile-chart-card feed-card">
-                            <h3 style="color: #888; font-size: 11px; letter-spacing: 1px; margin-bottom: 20px;">RECENT ACTIVITIES</h3>
+                            <h3 style="color: #888; font-size: 11px; letter-spacing: 1px; margin-bottom: 15px;">RECENT ACTIVITIES</h3>
+                            <div class="feed-filters-bar">
+                                <select id="profile-feed-type" class="feed-select" title="Activity Type">
+                                    <option value="all">All Activities</option>
+                                    <option value="run">Run</option>
+                                    <option value="walk">Walk</option>
+                                    <option value="hike">Hike</option>
+                                    <option value="ride">Ride</option>
+                                    <option value="swim">Swim</option>
+                                    <option value="workout">Workout</option>
+                                    <option value="row">Row</option>
+                                    <option value="virtual run">Virtual Run</option>
+                                    <option value="virtual ride">Virtual Ride</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <select id="profile-feed-sort" class="feed-select" title="Sort By">
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                    <option value="longest-dist">Longest Distance</option>
+                                    <option value="shortest-dist">Shortest Distance</option>
+                                    <option value="longest-dur">Longest Duration</option>
+                                    <option value="shortest-dur">Shortest Duration</option>
+                                </select>
+                                <button id="profile-feed-apply" class="feed-apply-btn">Apply Filters</button>
+                                <button id="profile-feed-reset" class="feed-reset-btn">Reset</button>
+                            </div>
+                            <div id="profile-active-filters" class="active-filters-display hidden"></div>
                             <div id="athlete-feed-list" class="athlete-feed-list">
                                 <!-- Populated dynamically -->
                             </div>

@@ -67,6 +67,32 @@
                             <span class="section-subtitle">LIVE UPDATES</span>
                         </div>
                     </div>
+                    <div class="feed-filters-bar">
+                        <select id="dashboard-feed-type" class="feed-select" title="Activity Type">
+                            <option value="all">All Activities</option>
+                            <option value="run">Run</option>
+                            <option value="walk">Walk</option>
+                            <option value="hike">Hike</option>
+                            <option value="ride">Ride</option>
+                            <option value="swim">Swim</option>
+                            <option value="workout">Workout</option>
+                            <option value="row">Row</option>
+                            <option value="virtual run">Virtual Run</option>
+                            <option value="virtual ride">Virtual Ride</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <select id="dashboard-feed-sort" class="feed-select" title="Sort By">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="longest-dist">Longest Distance</option>
+                            <option value="shortest-dist">Shortest Distance</option>
+                            <option value="longest-dur">Longest Duration</option>
+                            <option value="shortest-dur">Shortest Duration</option>
+                        </select>
+                        <button id="dashboard-feed-apply" class="feed-apply-btn">Apply Filters</button>
+                        <button id="dashboard-feed-reset" class="feed-reset-btn">Reset</button>
+                    </div>
+                    <div id="dashboard-active-filters" class="active-filters-display hidden"></div>
                     <div id="global-feed-list" class="global-feed-list">
                         <div class="loading-text">Loading feed...</div>
                     </div>

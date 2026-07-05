@@ -1497,3 +1497,122 @@ html {
 .athlete-feed-item:last-child {
     border-bottom: 1px solid transparent;
 }
+
+/* ===== Activity Feed Filters ===== */
+.feed-filters-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 15px;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    flex-wrap: nowrap;
+}
+
+.feed-select {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: inherit;
+    transition: all 0.2s;
+    height: 38px;
+    flex-grow: 1;
+}
+
+.feed-select:focus {
+    outline: none;
+    border-color: var(--color-orange);
+    box-shadow: 0 0 0 2px rgba(233, 84, 32, 0.1);
+}
+
+.feed-apply-btn {
+    background-color: var(--color-orange);
+    color: white;
+    border: none;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 38px;
+    box-shadow: 0 2px 4px rgba(233, 84, 32, 0.2);
+    white-space: nowrap;
+}
+
+.feed-apply-btn:hover {
+    background-color: #d14917;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(233, 84, 32, 0.3);
+}
+
+.feed-apply-btn:active {
+    transform: translateY(0);
+}
+
+.feed-reset-btn {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 38px;
+    white-space: nowrap;
+}
+
+.feed-reset-btn:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+    color: var(--text-primary);
+    border-color: #d1d5db;
+}
+
+.active-filters-display {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    background: rgba(233, 84, 32, 0.05);
+    border-left: 3px solid var(--color-orange);
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.active-filters-display span {
+    font-weight: 600;
+    color: var(--color-orange);
+}
+
+/* Responsive filter bar */
+@media (max-width: 768px) {
+    .feed-filters-bar {
+        flex-wrap: wrap;
+    }
+    .feed-select {
+        flex: 1 1 calc(50% - 6px);
+    }
+    .feed-apply-btn, .feed-reset-btn {
+        flex: 1 1 calc(50% - 6px);
+    }
+}
+
+@media (max-width: 480px) {
+    .feed-filters-bar {
+        flex-direction: column;
+    }
+    .feed-select, .feed-apply-btn, .feed-reset-btn {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+}
+

@@ -52,6 +52,26 @@ public class StravaService implements CommandLineRunner {
             createDefaultProfiles();
             log.info("Default archetypes loaded successfully.");
         }
+        
+        // Ensure admin user exists or is upgraded
+        List<AthleteProfile> athletes = athleteRepository.findAll();
+        for (AthleteProfile a : athletes) {
+            if ("shivamkalia108@gmail.com".equalsIgnoreCase(a.getEmail())) {
+                boolean changed = false;
+                if (a.getRole() != AthleteProfile.Role.ADMIN) {
+                    a.setRole(AthleteProfile.Role.ADMIN);
+                    changed = true;
+                }
+                if (a.getStatus() != AthleteProfile.Status.APPROVED) {
+                    a.setStatus(AthleteProfile.Status.APPROVED);
+                    changed = true;
+                }
+                if (changed) {
+                    athleteRepository.save(a);
+                    log.info("Upgraded existing user " + a.getEmail() + " to ADMIN.");
+                }
+            }
+        }
     }
 
     public String getAuthorizationUrl(String baseUrl, String state) {
@@ -131,6 +151,13 @@ public class StravaService implements CommandLineRunner {
         if (athlete.getPrimarySport() == null) {
             athlete.setPrimarySport("Run");
             athlete.setWeeklyDistanceGoal(50.0);
+        }
+        
+        // Security: Default all users to USER and PENDING
+        // Administrators must be manually promoted directly in the database.
+        if (athlete.getRole() == null || athlete.getStatus() == null) {
+            athlete.setRole(AthleteProfile.Role.USER);
+            athlete.setStatus(AthleteProfile.Status.PENDING);
         }
         
         athlete = athleteRepository.save(athlete);

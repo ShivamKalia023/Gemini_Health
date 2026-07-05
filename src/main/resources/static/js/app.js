@@ -154,52 +154,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const res = await fetch('/api/dashboard/feed');
-            const data = await res.json();
-            
-            if (data.length === 0) {
-                globalFeedList.innerHTML = '<div class="loading-text">No activities found.</div>';
-                return;
+            window.allGlobalActivities = await res.json();
+            if (typeof renderGlobalFeed === 'function') {
+                renderGlobalFeed();
             }
-            
-            globalFeedList.innerHTML = '';
-            data.forEach(act => {
-                // Determine 'time ago' string roughly
-                const actDate = new Date(act.startDate);
-                const diffTime = Math.abs(new Date() - actDate);
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                const timeAgo = diffDays > 0 ? `${diffDays}d ago` : 'Today';
-
-                const dist = act.distance ? act.distance.toFixed(1) + ' km' : '';
-                const durH = Math.floor(act.movingTime / 3600);
-                const durM = Math.floor((act.movingTime % 3600) / 60);
-                const timeStr = durH > 0 ? `${durH}h ${durM}m` : `${durM}m`;
-                
-                const avatar = act.athlete && act.athlete.avatarUrl ? `<img src="${act.athlete.avatarUrl}" style="width:32px;height:32px;border-radius:4px;object-fit:cover;">` : `<div style="width:32px;height:32px;background:#ddd;border-radius:4px;"></div>`;
-                
-                const el = document.createElement('div');
-                el.className = 'feed-item';
-                el.style.cursor = 'pointer';
-                el.addEventListener('click', () => {
-                    window.location.href = 'activity.html?id=' + act.id;
-                });
-                el.innerHTML = `
-                    <div style="margin-right: 12px;">${avatar}</div>
-                    <div class="feed-item-content">
-                        <div class="feed-title" style="margin-bottom: 4px;">
-                            <strong>${act.athlete ? act.athlete.name : 'Unknown'}</strong> completed ${dist} · ${act.name}
-                        </div>
-                        <div class="feed-stats">
-                            <span>${timeStr}</span>
-                            ${act.totalElevationGain ? `<span>· ${Math.round(act.totalElevationGain)}m</span>` : ''}
-                            <span>· ${timeAgo}</span>
-                        </div>
-                    </div>
-                    <div class="feed-item-icon" style="background:transparent;">
-                        ${act.type.toLowerCase().includes('run') ? '🏃' : (act.type.toLowerCase().includes('ride') ? '🚴' : '💪')}
-                    </div>
-                `;
-                globalFeedList.appendChild(el);
-            });
         } catch(e) {
             console.error(e);
             globalFeedList.innerHTML = '<div class="loading-text">Failed to load.</div>';
@@ -360,39 +318,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Feed Rendering
         const feedList = document.getElementById('athlete-feed-list');
         if (feedList) {
-            if (activities.length === 0) {
-                feedList.innerHTML = '<div style="padding:10px; color:#666;">No recent activities.</div>';
-            } else {
-                feedList.innerHTML = '';
-                // Show top 10 recent
-                activities.slice(0, 10).forEach(act => {
-                    const actDate = new Date(act.startDate);
-                    const diffTime = Math.abs(new Date() - actDate);
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    const timeAgo = diffDays > 0 ? `${diffDays}d ago` : 'Today';
-
-                    const dist = act.distance ? act.distance.toFixed(1) + ' km' : '';
-                    const durH = Math.floor(act.movingTime / 3600);
-                    const durM = Math.floor((act.movingTime % 3600) / 60);
-                    const timeStr = durH > 0 ? `${durH}h ${durM}m` : `${durM}m`;
-                    
-                    const el = document.createElement('div');
-                    el.className = 'athlete-feed-item';
-                    el.style.cursor = 'pointer';
-                    el.addEventListener('click', () => {
-                        window.location.href = 'activity.html?id=' + act.id;
-                    });
-                    el.innerHTML = `
-                        <div style="flex-grow: 1;">
-                            <div style="font-size: 13px; font-weight: bold; margin-bottom: 4px;">${act.name}</div>
-                            <div style="font-size: 11px; color: #888;">
-                                ${timeStr} · ${dist}
-                            </div>
-                        </div>
-                        <div style="font-size: 11px; color: #666;">${timeAgo}</div>
-                    `;
-                    feedList.appendChild(el);
-                });
+            window.allProfileActivities = activities;
+            if (typeof renderProfileFeed === 'function') {
+                renderProfileFeed();
             }
         }
 
@@ -871,3 +799,252 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+window.globalFilterType = 'all';
+window.globalFilterSort = 'newest';
+
+window.profileFilterType = 'all';
+window.profileFilterSort = 'newest';
+
+function applyFeedFiltersAndSort(activities, type, sort) {
+    let filtered = activities || [];
+
+    // Make a copy if type is all, so we don't mutate original array with sort
+    if (type === 'all') {
+        filtered = [...filtered];
+    } else {
+        filtered = filtered.filter(act => {
+            const actType = (act.type || '').toLowerCase();
+            if (type === 'run') return actType.includes('run');
+            if (type === 'walk') return actType.includes('walk');
+            if (type === 'hike') return actType.includes('hike');
+            if (type === 'ride') return actType.includes('ride') || actType.includes('cycle');
+            if (type === 'swim') return actType.includes('swim');
+            if (type === 'workout') return actType.includes('workout');
+            if (type === 'row') return actType.includes('row');
+            if (type === 'virtual ride') return actType.includes('virtualride') || actType.includes('virtual ride');
+            if (type === 'virtual run') return actType.includes('virtualrun') || actType.includes('virtual run');
+            return actType === type;
+        });
+    }
+
+    filtered.sort((a, b) => {
+        if (sort === 'newest') return new Date(b.startDate) - new Date(a.startDate);
+        if (sort === 'oldest') return new Date(a.startDate) - new Date(b.startDate);
+        if (sort === 'longest-dist') return (b.distance || 0) - (a.distance || 0);
+        if (sort === 'shortest-dist') return (a.distance || 0) - (b.distance || 0);
+        if (sort === 'longest-dur') return (b.movingTime || 0) - (a.movingTime || 0);
+        if (sort === 'shortest-dur') return (a.movingTime || 0) - (b.movingTime || 0);
+        return 0;
+    });
+
+    return filtered;
+}
+
+window.renderGlobalFeed = function() {
+    const globalFeedList = document.getElementById('global-feed-list');
+    if (!globalFeedList) return;
+
+    const filtered = applyFeedFiltersAndSort(window.allGlobalActivities, window.globalFilterType, window.globalFilterSort);
+    
+    const displayEl = document.getElementById('dashboard-active-filters') || document.getElementById('home-active-filters');
+    if (displayEl) {
+        if (window.globalFilterType !== 'all' || window.globalFilterSort !== 'newest') {
+            const typeLabel = document.querySelector('.feed-select[id$="-type"] option[value="' + window.globalFilterType + '"]')?.textContent || window.globalFilterType;
+            const sortLabel = document.querySelector('.feed-select[id$="-sort"] option[value="' + window.globalFilterSort + '"]')?.textContent || window.globalFilterSort;
+            
+            displayEl.innerHTML = `<div>Activity Type: <span>${typeLabel}</span> | Sort: <span>${sortLabel}</span></div>`;
+            displayEl.classList.remove('hidden');
+        } else {
+            displayEl.classList.add('hidden');
+        }
+    }
+
+    if (!filtered || filtered.length === 0) {
+        globalFeedList.innerHTML = '<div style="padding:15px; color:#666; text-align:center; background:rgba(255,255,255,0.02); border-radius:8px;">No activities found for the selected filters.</div>';
+        return;
+    }
+
+    globalFeedList.innerHTML = '';
+    filtered.forEach(act => {
+        const actDate = new Date(act.startDate);
+        const diffTime = Math.abs(new Date() - actDate);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const timeAgo = diffDays > 0 ? diffDays + 'd ago' : 'Today';
+
+        const dist = act.distance ? act.distance.toFixed(1) + ' km' : '';
+        const durH = Math.floor(act.movingTime / 3600);
+        const durM = Math.floor((act.movingTime % 3600) / 60);
+        const timeStr = durH > 0 ? durH + 'h ' + durM + 'm' : durM + 'm';
+        
+        const avatar = act.athlete && act.athlete.avatarUrl ? `<img src="${act.athlete.avatarUrl}" style="width:32px;height:32px;border-radius:4px;object-fit:cover;">` : `<div style="width:32px;height:32px;background:#ddd;border-radius:4px;"></div>`;
+        
+        const el = document.createElement('div');
+        el.className = 'feed-item';
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+            window.location.href = 'activity.html?id=' + act.id;
+        });
+        el.innerHTML = `
+            <div style="margin-right: 12px;">${avatar}</div>
+            <div class="feed-item-content">
+                <div class="feed-title" style="margin-bottom: 4px;">
+                    <strong>${act.athlete ? act.athlete.name : 'Unknown'}</strong> completed ${dist} · ${act.name}
+                </div>
+                <div class="feed-stats">
+                    <span>${timeStr}</span>
+                    ${act.totalElevationGain ? `<span>· ${Math.round(act.totalElevationGain)}m</span>` : ''}
+                    <span>· ${timeAgo}</span>
+                </div>
+            </div>
+            <div class="feed-item-icon" style="background:transparent;">
+                ${(act.type.toLowerCase().includes('run') ? '🏃' : (act.type.toLowerCase().includes('ride') ? '🚴' : '💪'))}
+            </div>
+        `;
+        globalFeedList.appendChild(el);
+    });
+};
+
+window.renderProfileFeed = function() {
+    const feedList = document.getElementById('athlete-feed-list');
+    if (!feedList) return;
+
+    const filtered = applyFeedFiltersAndSort(window.allProfileActivities, window.profileFilterType, window.profileFilterSort);
+
+    const displayEl = document.getElementById('profile-active-filters');
+    if (displayEl) {
+        if (window.profileFilterType !== 'all' || window.profileFilterSort !== 'newest') {
+            const typeLabel = document.querySelector('#profile-feed-type option[value="' + window.profileFilterType + '"]')?.textContent || window.profileFilterType;
+            const sortLabel = document.querySelector('#profile-feed-sort option[value="' + window.profileFilterSort + '"]')?.textContent || window.profileFilterSort;
+            
+            displayEl.innerHTML = `<div>Activity Type: <span>${typeLabel}</span> | Sort: <span>${sortLabel}</span></div>`;
+            displayEl.classList.remove('hidden');
+        } else {
+            displayEl.classList.add('hidden');
+        }
+    }
+
+    if (!filtered || filtered.length === 0) {
+        feedList.innerHTML = '<div style="padding:15px; color:#666; text-align:center; background:rgba(255,255,255,0.02); border-radius:8px;">No activities found for the selected filters.</div>';
+        return;
+    }
+
+    feedList.innerHTML = '';
+    filtered.slice(0, 50).forEach(act => {
+        const actDate = new Date(act.startDate);
+        const diffTime = Math.abs(new Date() - actDate);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const timeAgo = diffDays > 0 ? diffDays + 'd ago' : 'Today';
+
+        const dist = act.distance ? act.distance.toFixed(1) + ' km' : '';
+        const durH = Math.floor(act.movingTime / 3600);
+        const durM = Math.floor((act.movingTime % 3600) / 60);
+        const timeStr = durH > 0 ? durH + 'h ' + durM + 'm' : durM + 'm';
+        
+        const el = document.createElement('div');
+        el.className = 'athlete-feed-item';
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+            window.location.href = 'activity.html?id=' + act.id;
+        });
+        el.innerHTML = `
+            <div style="flex-grow: 1;">
+                <div style="font-size: 13px; font-weight: bold; margin-bottom: 4px;">${act.name}</div>
+                <div style="font-size: 11px; color: #888;">
+                    ${timeStr} · ${dist}
+                </div>
+            </div>
+            <div style="font-size: 11px; color: #666;">${timeAgo}</div>
+        `;
+        feedList.appendChild(el);
+    });
+};
+
+function executeWithLoading(btn, action) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+    btn.style.cursor = 'not-allowed';
+    btn.innerHTML = '<span style="display:inline-block; width:12px; height:12px; border:2px solid rgba(255,255,255,0.3); border-radius:50%; border-top-color:#fff; animation:spin 1s ease-in-out infinite; margin-right:6px;"></span>Loading...';
+    
+    // Create animation style if it doesn't exist
+    if (!document.getElementById('spinner-style')) {
+        const style = document.createElement('style');
+        style.id = 'spinner-style';
+        style.innerHTML = '@keyframes spin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+    }
+    
+    // Simulate network delay and execute logic
+    setTimeout(() => {
+        action();
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.innerHTML = originalText;
+    }, 400);
+}
+
+// Global initialization function to ensure we attach after elements are ready
+function initFilters() {
+    // Global Feed Listeners
+    const dbType = document.getElementById('dashboard-feed-type') || document.getElementById('home-feed-type');
+    const dbSort = document.getElementById('dashboard-feed-sort') || document.getElementById('home-feed-sort');
+    const dbApply = document.getElementById('dashboard-feed-apply') || document.getElementById('home-feed-apply');
+    const dbReset = document.getElementById('dashboard-feed-reset') || document.getElementById('home-feed-reset');
+
+    if (dbApply) {
+        dbApply.addEventListener('click', () => {
+            executeWithLoading(dbApply, () => {
+                if (dbType) window.globalFilterType = dbType.value;
+                if (dbSort) window.globalFilterSort = dbSort.value;
+                window.renderGlobalFeed();
+            });
+        });
+    }
+    
+    if (dbReset) {
+        dbReset.addEventListener('click', () => {
+            executeWithLoading(dbReset, () => {
+                window.globalFilterType = 'all';
+                window.globalFilterSort = 'newest';
+                if(dbType) dbType.value = 'all';
+                if(dbSort) dbSort.value = 'newest';
+                window.renderGlobalFeed();
+            });
+        });
+    }
+
+    // Profile Feed Listeners
+    const pfType = document.getElementById('profile-feed-type');
+    const pfSort = document.getElementById('profile-feed-sort');
+    const pfApply = document.getElementById('profile-feed-apply');
+    const pfReset = document.getElementById('profile-feed-reset');
+
+    if (pfApply) {
+        pfApply.addEventListener('click', () => {
+            executeWithLoading(pfApply, () => {
+                if (pfType) window.profileFilterType = pfType.value;
+                if (pfSort) window.profileFilterSort = pfSort.value;
+                window.renderProfileFeed();
+            });
+        });
+    }
+
+    if (pfReset) {
+        pfReset.addEventListener('click', () => {
+            executeWithLoading(pfReset, () => {
+                window.profileFilterType = 'all';
+                window.profileFilterSort = 'newest';
+                if(pfType) pfType.value = 'all';
+                if(pfSort) pfSort.value = 'newest';
+                window.renderProfileFeed();
+            });
+        });
+    }
+}
+
+// Attempt to initialize immediately (in case DOM is already ready)
+initFilters();
+// Also wait for DOMContentLoaded to guarantee execution
+document.addEventListener('DOMContentLoaded', initFilters);

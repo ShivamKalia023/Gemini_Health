@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFG Tracker - Admin Panel</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.4">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-body">
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="admin-brand">
+                <div class="admin-logo">GFG</div>
+                <span>Admin Panel</span>
+            </div>
+            <nav class="admin-nav">
+                <a href="#dashboard" class="nav-item active" data-target="dashboard">Dashboard Overview</a>
+                <a href="#pending" class="nav-item" data-target="pending">Pending Requests <span id="badge-pending" class="badge hidden">0</span></a>
+                <a href="#approved" class="nav-item" data-target="approved">Approved Users</a>
+                <a href="#rejected" class="nav-item" data-target="rejected">Rejected Users</a>
+                <a href="/home.html" class="nav-item return-app">Back to App</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Header -->
+            <header class="admin-header">
+                <h1 id="page-title">Dashboard Overview</h1>
+                <div class="admin-profile">
+                    <span>System Administrator</span>
+                    <div class="admin-avatar">A</div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="section-dashboard" class="admin-section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-total">0</div>
+                        <div class="stat-label">Total Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value warning" id="stat-pending">0</div>
+                        <div class="stat-label">Pending Approval</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value success" id="stat-approved">0</div>
+                        <div class="stat-label">Approved Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value danger" id="stat-rejected">0</div>
+                        <div class="stat-label">Rejected Users</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pending Section -->
+            <section id="section-pending" class="admin-section">
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Profile</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-pending">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Approved Section -->
+            <section id="section-approved" class="admin-section">
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Profile</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Approved At</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-approved">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Rejected Section -->
+            <section id="section-rejected" class="admin-section">
+                <div class="table-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Profile</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-rejected">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div id="confirm-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="modal-title">Confirm Action</h3>
+            <p id="modal-text">Are you sure you want to proceed?</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-confirm" id="modal-confirm-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        Notification Message
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>
