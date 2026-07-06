@@ -13,6 +13,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findByAthleteIdOrderByStartDateDesc(Long athleteId);
     List<Activity> findByAthleteIdAndStartDateAfterOrderByStartDateAsc(Long athleteId, LocalDateTime startDate);
     Optional<Activity> findByStravaActivityId(String stravaActivityId);
+    List<Activity> findByAthleteIdAndStartDateBetween(Long athleteId, LocalDateTime start, LocalDateTime end);
     
     List<Activity> findTop50ByOrderByStartDateDesc();
 }

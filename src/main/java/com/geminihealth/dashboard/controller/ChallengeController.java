@@ -1,7 +1,9 @@
 package com.geminihealth.dashboard.controller;
 
+import com.geminihealth.dashboard.model.Activity;
 import com.geminihealth.dashboard.model.AthleteProfile;
 import com.geminihealth.dashboard.model.Challenge;
+import com.geminihealth.dashboard.repository.ActivityRepository;
 import com.geminihealth.dashboard.repository.AthleteRepository;
 import com.geminihealth.dashboard.repository.ChallengeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +31,70 @@ public class ChallengeController {
 
     @Autowired
     private AthleteRepository athleteRepository;
+
+    @Autowired
+    private ActivityRepository activityRepository;
+
+    @GetMapping("/upcoming")
+    public ResponseEntity<?> getUpcomingChallenges() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Challenge> challenges = challengeRepository.findByStartDateAfterOrderByStartDateAsc(now);
+        return ResponseEntity.ok(challenges);
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<?> getActiveChallenges() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Challenge> challenges = challengeRepository.findByStartDateLessThanEqualAndEndDateGreaterThanOrderByStartDateDesc(now, now);
+        return ResponseEntity.ok(challenges);
+    }
+
+    @GetMapping("/{id}/leaderboard")
+    public ResponseEntity<?> getChallengeLeaderboard(@PathVariable Long id) {
+        Optional<Challenge> challengeOpt = challengeRepository.findById(id);
+        if (challengeOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Challenge challenge = challengeOpt.get();
+        
+        List<Map<String, Object>> leaderboard = new ArrayList<>();
+        
+        for (AthleteProfile participant : challenge.getParticipants()) {
+            List<Activity> activities = activityRepository.findByAthleteIdAndStartDateBetween(participant.getId(), challenge.getStartDate(), challenge.getEndDate());
+            double progress = 0;
+            for (Activity activity : activities) {
+                if (challenge.getActivityType() == null || challenge.getActivityType().equalsIgnoreCase("any") || (activity.getType() != null && activity.getType().toLowerCase().contains(challenge.getActivityType().toLowerCase()))) {
+                    if ("distance".equalsIgnoreCase(challenge.getGoalType())) {
+                        progress += (activity.getDistance() != null ? activity.getDistance() : 0);
+                    } else if ("time".equalsIgnoreCase(challenge.getGoalType())) {
+                        progress += (activity.getMovingTime() != null ? activity.getMovingTime() : 0);
+                    } else if ("elevation".equalsIgnoreCase(challenge.getGoalType())) {
+                        progress += (activity.getTotalElevationGain() != null ? activity.getTotalElevationGain() : 0);
+                    } else if ("activities".equalsIgnoreCase(challenge.getGoalType())) {
+                        progress += 1;
+                    }
+                }
+            }
+            
+            double percentage = challenge.getTargetValue() != null && challenge.getTargetValue() > 0 ? (progress / challenge.getTargetValue()) * 100 : 0;
+            if (percentage > 100) percentage = 100;
+            
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("athlete", participant);
+            entry.put("progress", progress);
+            entry.put("percentage", percentage);
+            entry.put("isCompleted", progress >= (challenge.getTargetValue() != null ? challenge.getTargetValue() : Double.MAX_VALUE));
+            leaderboard.add(entry);
+        }
+        
+        leaderboard.sort((a, b) -> Double.compare((Double)b.get("progress"), (Double)a.get("progress")));
+        
+        for (int i = 0; i < leaderboard.size(); i++) {
+            leaderboard.get(i).put("rank", i + 1);
+        }
+        
+        return ResponseEntity.ok(leaderboard);
+    }
 
     @GetMapping
     public ResponseEntity<?> getAllChallenges() {
