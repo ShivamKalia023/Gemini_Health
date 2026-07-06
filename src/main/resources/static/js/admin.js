@@ -270,7 +270,11 @@ document.getElementById('challenge-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const id = document.getElementById('challenge-id').value;
     
-    const formatForBackend = (val) => val ? val + ":00" : null;
+    const formatForBackend = (val) => {
+        if (!val) return null;
+        if (val.length === 16) return val + ":00";
+        return val;
+    };
     
     const payload = {
         title: document.getElementById('challenge-title').value,
@@ -296,8 +300,15 @@ document.getElementById('challenge-form')?.addEventListener('submit', (e) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     })
-    .then(res => {
-        if (!res.ok) throw new Error("Failed to save challenge");
+    .then(async res => {
+        if (!res.ok) {
+            let errMsg = "Failed to save challenge";
+            try {
+                const errData = await res.json();
+                if (errData.error) errMsg = errData.error;
+            } catch (e) {}
+            throw new Error(errMsg);
+        }
         return res.json();
     })
     .then(data => {
