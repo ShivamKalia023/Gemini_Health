@@ -53,33 +53,243 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadChallenges() {
         if (!challengesList) return;
         
+        const athleteIdCookie = document.cookie.split('; ').find(row => row.startsWith('athlete_id='));
+        const currentAthleteId = athleteIdCookie ? parseInt(athleteIdCookie.split('=')[1]) : null;
+
         try {
             const res = await fetch('/api/dashboard/challenges');
             const data = await res.json();
             
-            if (data.length === 0) {
+            const formatDateTime = (dateString) => {
+                if (!dateString) return '--';
+                const d = new Date(dateString);
+                if (isNaN(d.getTime())) return '--';
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = months[d.getMonth()];
+                const year = d.getFullYear();
+                
+                let hours = d.getHours();
+                const minutes = String(d.getMinutes()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; 
+                const hoursStr = String(hours).padStart(2, '0');
+                
+                return `${day} ${month} ${year} • ${hoursStr}:${minutes} ${ampm}`;
+            };
+            
+            // Filter to show only non-Draft/Cancelled challenges to public, or let them see all? 
+            // The prompt says "Challenge becomes publicly visible" when "Active".
+            const visibleChallenges = data.filter(c => ['Active', 'Completed'].includes(c.status));
+
+            if (visibleChallenges.length === 0) {
                 challengesList.innerHTML = '<div class="loading-text" style="color: #666; font-size: 14px; text-align: center; padding: 20px;">No active challenges found.</div>';
                 return;
             }
             
             challengesList.innerHTML = '';
-            data.forEach(challenge => {
+            visibleChallenges.forEach(challenge => {
+                const isParticipating = currentAthleteId && challenge.participants && challenge.participants.some(p => p.id === currentAthleteId);
+                const participantCount = challenge.participants ? challenge.participants.length : 0;
+                
+                let badgeStatus = challenge.status;
+                let statusColor = challenge.status === 'Active' ? '#10b981' : '#f59e0b';
+                let btnHtml = '';
+
+                const now = new Date();
+                const rStart = challenge.registrationStartDate ? new Date(challenge.registrationStartDate) : null;
+                const rEnd = challenge.registrationEndDate ? new Date(challenge.registrationEndDate) : null;
+                const cStart = challenge.startDate ? new Date(challenge.startDate) : null;
+
+                let regStateText = '';
+                let regStatusDotColor = '#cbd5e1';
+                let canJoin = false;
+                let showButton = true;
+                let buttonDisabled = false;
+                let buttonText = isParticipating ? 'Leave Challenge' : 'Participate';
+
+                const cEnd = challenge.endDate ? new Date(challenge.endDate) : null;
+
+                console.log("---- Challenge Status Calculation ----");
+                console.log("Challenge:", challenge.title);
+                console.log("Current System Time:", now);
+                console.log("Registration Opens:", rStart);
+                console.log("Registration Closes:", rEnd);
+                console.log("Challenge Starts:", cStart);
+                console.log("Challenge Ends:", cEnd);
+
+                if (rStart && rEnd && cStart && cEnd) {
+                    if (now < rStart) {
+                        regStateText = `Registration Not Open Yet`;
+                        regStatusDotColor = '#fbbf24'; // yellow
+                        buttonDisabled = true;
+                    } else if (now >= rStart && now < rEnd) {
+                        regStateText = `Registration Open`;
+                        regStatusDotColor = '#10b981'; // green
+                        canJoin = true;
+                    } else if (now >= rEnd && now < cStart) {
+                        regStateText = `Registration Closed`;
+                        regStatusDotColor = '#ef4444'; // red
+                        buttonDisabled = true;
+                    } else if (now >= cStart && now < cEnd) {
+                        regStateText = `Challenge Active`;
+                        regStatusDotColor = '#10b981';
+                        if (!isParticipating) {
+                            buttonDisabled = true;
+                            buttonText = 'Registration Closed';
+                        }
+                    } else if (now >= cEnd) {
+                        regStateText = `Challenge Completed`;
+                        regStatusDotColor = '#1e293b';
+                        showButton = false;
+                    }
+                } else {
+                    // Fallback for legacy
+                    if (challenge.status === 'Active') {
+                        canJoin = true;
+                        regStateText = `Open`;
+                        regStatusDotColor = '#10b981';
+                    } else {
+                        buttonDisabled = true;
+                        regStateText = `Closed`;
+                        regStatusDotColor = '#ef4444';
+                    }
+                }
+
+                if (challenge.status === 'Completed') {
+                    showButton = false;
+                    regStateText = `Challenge Completed`;
+                    regStatusDotColor = '#1e293b'; // dark gray
+                }
+                
+                console.log("Calculated Registration Status:", regStateText);
+                console.log("--------------------------------------");
+                
+                if (challenge.status === 'Scheduled') {
+                     badgeStatus = 'Scheduled';
+                     statusColor = '#3b82f6';
+                }
+
+                if (showButton) {
+                    btnHtml = `
+                        <button id="btn-participate-${challenge.id}" ${buttonDisabled ? 'disabled' : ''} class="btn-participate ${isParticipating && !buttonDisabled ? 'leave' : 'active'}" style="cursor: ${buttonDisabled ? 'not-allowed' : 'pointer'};">
+                            ${buttonText}
+                        </button>
+                    `;
+                }
+                
                 const el = document.createElement('div');
-                el.className = 'challenge-card';
-                el.style.backgroundColor = '#1a1a1a';
-                el.style.border = '1px solid #333';
-                el.style.borderRadius = '8px';
-                el.style.padding = '20px';
-                el.style.color = '#fff';
+                el.className = 'modern-challenge-card';
+                
+                // Determine left section background
+                const bannerStyle = challenge.bannerImage && challenge.bannerImage.trim() !== '' 
+                    ? `background-image: url('${challenge.bannerImage}');` 
+                    : `background: linear-gradient(135deg, #e95420 0%, #ff7e5f 100%);`;
+
                 el.innerHTML = `
-                    <h4 style="margin-bottom: 10px; font-size: 16px;">${challenge.title}</h4>
-                    <p style="color: #aaa; font-size: 14px; margin-bottom: 15px;">${challenge.description}</p>
-                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888;">
-                        <span>Target: ${challenge.targetValue} ${challenge.metric}</span>
-                        <span>Ends: ${new Date(challenge.endDate).toLocaleDateString()}</span>
+                    <div class="cc-left" style="${bannerStyle}">
+                        <div class="cc-left-content">
+                            <span class="cc-status-badge" style="background-color: ${statusColor}40; color: #fff; border: 1px solid ${statusColor};">${badgeStatus}</span>
+                            <h4 class="cc-title">${challenge.title}</h4>
+                            <p class="cc-desc">${challenge.description}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="cc-middle">
+                        <div class="cc-timeline">
+                            <div class="cc-timeline-item">
+                                <div class="cc-icon">📅</div>
+                                <div class="cc-info">
+                                    <span class="cc-label">Registration Opens</span>
+                                    <span class="cc-value">${formatDateTime(challenge.registrationStartDate)}</span>
+                                </div>
+                            </div>
+                            <div class="cc-timeline-item">
+                                <div class="cc-icon">🔒</div>
+                                <div class="cc-info">
+                                    <span class="cc-label">Registration Closes</span>
+                                    <span class="cc-value">${formatDateTime(challenge.registrationEndDate)}</span>
+                                </div>
+                            </div>
+                            <div class="cc-timeline-item">
+                                <div class="cc-icon">🚩</div>
+                                <div class="cc-info">
+                                    <span class="cc-label">Challenge Starts</span>
+                                    <span class="cc-value">${formatDateTime(challenge.startDate)}</span>
+                                </div>
+                            </div>
+                            <div class="cc-timeline-item">
+                                <div class="cc-icon">🏁</div>
+                                <div class="cc-info">
+                                    <span class="cc-label">Challenge Ends</span>
+                                    <span class="cc-value">${formatDateTime(challenge.endDate)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="cc-stats-row">
+                            <div class="cc-stat">
+                                <span class="cc-label">🎯 Goal</span>
+                                <span class="cc-value">${challenge.targetValue} ${challenge.unit}</span>
+                            </div>
+                            <div class="cc-stat">
+                                <span class="cc-label">👥 Participants</span>
+                                <span class="cc-value" id="participant-count-${challenge.id}">${participantCount}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cc-right">
+                        ${btnHtml}
+                        <div class="cc-reg-status">
+                            <div class="cc-dot" style="background-color: ${regStatusDotColor};"></div>
+                            <span style="color: ${regStatusDotColor};">${regStateText}</span>
+                        </div>
                     </div>
                 `;
                 challengesList.appendChild(el);
+
+                if (showButton && !buttonDisabled) {
+                    const btn = document.getElementById(`btn-participate-${challenge.id}`);
+                    if (btn) {
+                        btn.addEventListener('click', async () => {
+                        if (!currentAthleteId) {
+                            alert("Please log in to participate in challenges.");
+                            return;
+                        }
+                        const isCurrentlyParticipating = btn.textContent.trim() === 'Leave Challenge';
+                        const method = isCurrentlyParticipating ? 'DELETE' : 'POST';
+                        
+                        try {
+                            btn.disabled = true;
+                            btn.textContent = 'Processing...';
+                            const pRes = await fetch(`/api/challenges/${challenge.id}/participate`, { method });
+                            const pData = await pRes.json();
+                            
+                            if (pRes.ok) {
+                                document.getElementById(`participant-count-${challenge.id}`).textContent = pData.participantCount;
+                                if (isCurrentlyParticipating) {
+                                    btn.textContent = 'Participate';
+                                    btn.className = 'btn-participate active';
+                                } else {
+                                    btn.textContent = 'Leave Challenge';
+                                    btn.className = 'btn-participate leave';
+                                }
+                            } else {
+                                alert(pData.error || 'Action failed.');
+                                btn.textContent = isCurrentlyParticipating ? 'Leave Challenge' : 'Participate';
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('An error occurred.');
+                            btn.textContent = isCurrentlyParticipating ? 'Leave Challenge' : 'Participate';
+                        } finally {
+                            btn.disabled = false;
+                        }
+                    });
+                    }
+                }
             });
         } catch (err) {
             console.error('Error loading challenges:', err);

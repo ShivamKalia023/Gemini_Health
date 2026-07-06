@@ -25,6 +25,7 @@ function initNavigation() {
             else if (target === 'pending') loadUsers('pending');
             else if (target === 'approved') loadUsers('approved');
             else if (target === 'rejected') loadUsers('rejected');
+            else if (target === 'challenges') loadChallenges();
         });
     });
 }
@@ -180,4 +181,157 @@ function showToast(message, type) {
     setTimeout(() => {
         toast.classList.add('hidden');
     }, 3000);
+}
+
+// Challenge Management
+function loadChallenges() {
+    fetch('/api/challenges')
+        .then(res => res.json())
+        .then(challenges => {
+            const tbody = document.getElementById('table-challenges');
+            tbody.innerHTML = '';
+            
+            if (challenges.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8;">No challenges found.</td></tr>`;
+                return;
+            }
+            
+            challenges.forEach(c => {
+                const tr = document.createElement('tr');
+                const startDate = new Date(c.startDate).toLocaleDateString();
+                const endDate = new Date(c.endDate).toLocaleDateString();
+                
+                let actions = `
+                    <button class="action-btn" onclick='openChallengeModal(${JSON.stringify(c).replace(/'/g, "&#39;")})'>Edit</button>
+                    <button class="action-btn btn-reject" onclick="confirmDeleteChallenge(${c.id})">Delete</button>
+                `;
+                
+                if (c.status === 'Draft' || c.status === 'Scheduled') {
+                    actions += `<button class="action-btn btn-approve" onclick="updateChallengeStatus(${c.id}, 'Active')">Start</button>`;
+                } else if (c.status === 'Active') {
+                    actions += `<button class="action-btn btn-revoke" onclick="updateChallengeStatus(${c.id}, 'Completed')">End</button>`;
+                }
+
+                tr.innerHTML = `
+                    <td><strong>${c.title}</strong><br><small style="color:#94a3b8">${c.goalType}: ${c.targetValue} ${c.unit}</small></td>
+                    <td>${c.activityType}</td>
+                    <td><span class="badge ${c.status === 'Active' ? 'success' : (c.status === 'Completed' ? '' : 'warning')}">${c.status}</span></td>
+                    <td>${startDate} - ${endDate}</td>
+                    <td>${c.participantCount || 0}</td>
+                    <td>${actions}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(console.error);
+}
+
+function openChallengeModal(challenge = null) {
+    const modal = document.getElementById('challenge-modal');
+    const form = document.getElementById('challenge-form');
+    document.getElementById('challenge-modal-title').innerText = challenge ? 'Edit Challenge' : 'Add Challenge';
+    
+    if (challenge) {
+        document.getElementById('challenge-id').value = challenge.id;
+        document.getElementById('challenge-title').value = challenge.title;
+        document.getElementById('challenge-description').value = challenge.description;
+        document.getElementById('challenge-activity-type').value = challenge.activityType || 'Run';
+        document.getElementById('challenge-goal-type').value = challenge.goalType || 'Distance';
+        document.getElementById('challenge-target').value = challenge.targetValue || '';
+        document.getElementById('challenge-unit').value = challenge.unit || '';
+        
+        // Format dates for datetime-local input (no timezone shift)
+        const formatDate = (dateString) => {
+            if (!dateString) return '';
+            // Backend sends "2026-07-06T14:59:00" or similar
+            // datetime-local expects "YYYY-MM-DDTHH:mm"
+            return dateString.slice(0, 16);
+        };
+        
+        document.getElementById('challenge-start').value = formatDate(challenge.startDate);
+        document.getElementById('challenge-end').value = formatDate(challenge.endDate);
+        document.getElementById('challenge-reg-start').value = formatDate(challenge.registrationStartDate);
+        document.getElementById('challenge-reg-end').value = formatDate(challenge.registrationEndDate);
+        document.getElementById('challenge-banner').value = challenge.bannerImage || '';
+        document.getElementById('challenge-status').value = challenge.status || 'Draft';
+    } else {
+        form.reset();
+        document.getElementById('challenge-id').value = '';
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function closeChallengeModal() {
+    document.getElementById('challenge-modal').classList.add('hidden');
+}
+
+document.getElementById('challenge-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = document.getElementById('challenge-id').value;
+    
+    const formatForBackend = (val) => val ? val + ":00" : null;
+    
+    const payload = {
+        title: document.getElementById('challenge-title').value,
+        description: document.getElementById('challenge-description').value,
+        activityType: document.getElementById('challenge-activity-type').value,
+        goalType: document.getElementById('challenge-goal-type').value,
+        targetValue: parseFloat(document.getElementById('challenge-target').value),
+        unit: document.getElementById('challenge-unit').value,
+        startDate: formatForBackend(document.getElementById('challenge-start').value),
+        endDate: formatForBackend(document.getElementById('challenge-end').value),
+        registrationStartDate: formatForBackend(document.getElementById('challenge-reg-start').value),
+        registrationEndDate: formatForBackend(document.getElementById('challenge-reg-end').value),
+        bannerImage: document.getElementById('challenge-banner').value,
+        status: document.getElementById('challenge-status').value,
+        isPublic: true
+    };
+    
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? '/api/challenges/' + id : '/api/challenges';
+    
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to save challenge");
+        return res.json();
+    })
+    .then(data => {
+        showToast("Challenge saved successfully!", "success");
+        closeChallengeModal();
+        loadChallenges();
+    })
+    .catch(err => {
+        showToast(err.message, "error");
+    });
+});
+
+function confirmDeleteChallenge(id) {
+    pendingAction = () => {
+        fetch(`/api/challenges/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                showToast("Challenge deleted.", "error");
+                closeModal();
+                loadChallenges();
+            });
+    };
+    showModal("Delete Challenge", "Are you sure you want to delete this challenge?");
+}
+
+function updateChallengeStatus(id, status) {
+    fetch(`/api/challenges/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+    })
+    .then(res => res.json())
+    .then(data => {
+        showToast("Challenge status updated.", "success");
+        loadChallenges();
+    });
 }

@@ -1605,3 +1605,228 @@ html {
     }
 }
 
+
+/* ===== Modern Challenge Cards ===== */
+.modern-challenge-card {
+    display: flex;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.modern-challenge-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.cc-left {
+    flex: 0 0 300px;
+    position: relative;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    color: white;
+    background-size: cover;
+    background-position: center;
+}
+
+.cc-left::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 100%);
+    z-index: 1;
+}
+
+.cc-left-content {
+    position: relative;
+    z-index: 2;
+}
+
+.cc-status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    backdrop-filter: blur(4px);
+}
+
+.cc-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+.cc-desc {
+    font-size: 13px;
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
+.cc-middle {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-right: 1px solid var(--border-color);
+}
+
+.cc-timeline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.cc-timeline-item {
+    display: flex;
+    gap: 12px;
+}
+
+.cc-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background-color: #fff7ed;
+    color: var(--color-orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.cc-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.cc-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.cc-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.cc-stats-row {
+    display: flex;
+    gap: 24px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.cc-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.cc-right {
+    flex: 0 0 240px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background-color: #f8fafc;
+}
+
+.cc-reg-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 16px;
+}
+
+.cc-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.btn-participate {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.btn-participate.active {
+    background-color: var(--color-orange);
+    color: white;
+}
+
+.btn-participate.active:hover {
+    background-color: #d04719;
+}
+
+.btn-participate.leave {
+    background-color: white;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-participate.leave:hover {
+    background-color: #f1f5f9;
+}
+
+.btn-participate:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .modern-challenge-card {
+        flex-direction: column;
+    }
+    .cc-left {
+        flex: 0 0 200px;
+    }
+    .cc-middle {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .cc-right {
+        flex: 0 0 auto;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 640px) {
+    .cc-timeline {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .cc-stats-row {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+
