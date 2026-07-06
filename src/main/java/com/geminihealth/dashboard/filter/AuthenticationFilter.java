@@ -48,6 +48,17 @@ public class AuthenticationFilter implements Filter {
         boolean isProtected = PROTECTED_PAGES.stream().anyMatch(page -> requestURI.endsWith(page));
         boolean isAdminPage = ADMIN_PAGES.stream().anyMatch(page -> requestURI.endsWith(page));
         boolean isAdminApi = ADMIN_API.stream().anyMatch(api -> requestURI.startsWith(api));
+        
+        boolean isChallengeAdminAction = requestURI.startsWith("/api/challenges") && 
+            !requestURI.endsWith("/participate") && 
+            (httpRequest.getMethod().equals("POST") || 
+             httpRequest.getMethod().equals("PUT") || 
+             httpRequest.getMethod().equals("DELETE") || 
+             httpRequest.getMethod().equals("PATCH"));
+             
+        if (isChallengeAdminAction) {
+            isAdminApi = true;
+        }
         boolean isProtectedApi = requestURI.startsWith("/api/") && !requestURI.startsWith("/api/athletes/strava") && !requestURI.startsWith("/api/auth") && !requestURI.startsWith("/api/temp");
 
         if (isProtected || isAdminPage || isAdminApi || isProtectedApi) {

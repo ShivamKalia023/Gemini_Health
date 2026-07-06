@@ -29,10 +29,7 @@ public class ChallengeController {
     private AthleteRepository athleteRepository;
 
     @GetMapping
-    public ResponseEntity<?> getAllChallenges(@CookieValue(value = "admin_token", required = false) String adminToken) {
-        if (!"true".equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin access required."));
-        }
+    public ResponseEntity<?> getAllChallenges() {
         List<Challenge> challenges = challengeRepository.findAll();
         return ResponseEntity.ok(challenges);
     }
@@ -47,11 +44,7 @@ public class ChallengeController {
     }
 
     @PostMapping
-    public ResponseEntity<?> addChallenge(@RequestBody Challenge challenge, @CookieValue(value = "admin_token", required = false) String adminToken) {
-        if (!"true".equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin access required."));
-        }
-        
+    public ResponseEntity<?> addChallenge(@RequestBody Challenge challenge) {
         if (challenge.getTitle() == null || challenge.getTitle().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Challenge title is required."));
         }
@@ -66,11 +59,7 @@ public class ChallengeController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateChallenge(@PathVariable Long id, @RequestBody Challenge challengeDetails, @CookieValue(value = "admin_token", required = false) String adminToken) {
-        if (!"true".equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin access required."));
-        }
-        
+    public ResponseEntity<?> updateChallenge(@PathVariable Long id, @RequestBody Challenge challengeDetails) {
         Optional<Challenge> existing = challengeRepository.findById(id);
         if (existing.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -102,11 +91,7 @@ public class ChallengeController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<?> updateChallengeStatus(@PathVariable Long id, @RequestBody Map<String, String> statusUpdate, @CookieValue(value = "admin_token", required = false) String adminToken) {
-        if (!"true".equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin access required."));
-        }
-
+    public ResponseEntity<?> updateChallengeStatus(@PathVariable Long id, @RequestBody Map<String, String> statusUpdate) {
         String status = statusUpdate.get("status");
         if (status == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Status is required"));
@@ -143,11 +128,7 @@ public class ChallengeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteChallenge(@PathVariable Long id, @CookieValue(value = "admin_token", required = false) String adminToken) {
-        if (!"true".equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Admin access required."));
-        }
-        
+    public ResponseEntity<?> deleteChallenge(@PathVariable Long id) {
         if (challengeRepository.existsById(id)) {
             challengeRepository.deleteById(id);
             return ResponseEntity.ok(Map.of("message", "Deleted"));
