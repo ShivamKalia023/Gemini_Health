@@ -16,6 +16,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.DayOfWeek;
+import java.time.temporal.TemporalAdjusters;
+
 import org.springframework.transaction.annotation.Transactional;
 
 @RestController
@@ -36,18 +42,49 @@ public class DashboardController {
     @Autowired
     private com.geminihealth.dashboard.service.PerformanceService performanceService;
 
+    private LocalDateTime calculateStartDate(String timeFilter) {
+        if (timeFilter == null || timeFilter.equalsIgnoreCase("all")) {
+            return null;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = now.toLocalDate();
+        
+        switch (timeFilter.toLowerCase()) {
+            case "today":
+                return LocalDateTime.of(today, LocalTime.MIN);
+            case "week":
+                return LocalDateTime.of(today.minusDays(7), LocalTime.MIN);
+            case "month":
+                return LocalDateTime.of(today.withDayOfMonth(1), LocalTime.MIN);
+            case "year":
+                return LocalDateTime.of(today.withDayOfYear(1), LocalTime.MIN);
+            default:
+                return null;
+        }
+    }
+
     @GetMapping("/feed")
-    public ResponseEntity<List<Activity>> getGlobalFeed() {
+    public ResponseEntity<List<Activity>> getGlobalFeed(@RequestParam(required = false, defaultValue = "all") String timeFilter) {
+        LocalDateTime startDate = calculateStartDate(timeFilter);
+        if (startDate != null) {
+            return ResponseEntity.ok(activityRepository.findTop50ByStartDateAfterOrderByStartDateDesc(startDate));
+        }
         return ResponseEntity.ok(activityRepository.findTop50ByOrderByStartDateDesc());
     }
 
     @GetMapping("/leaderboard")
-    public ResponseEntity<List<Map<String, Object>>> getLeaderboard() {
+    public ResponseEntity<List<Map<String, Object>>> getLeaderboard(@RequestParam(required = false, defaultValue = "all") String timeFilter) {
+        LocalDateTime startDate = calculateStartDate(timeFilter);
         List<AthleteProfile> athletes = athleteRepository.findAll();
         List<Map<String, Object>> leaderboard = new ArrayList<>();
 
         for (AthleteProfile athlete : athletes) {
-            List<Activity> activities = activityRepository.findByAthleteIdOrderByStartDateDesc(athlete.getId());
+            List<Activity> activities;
+            if (startDate != null) {
+                activities = activityRepository.findByAthleteIdAndStartDateAfterOrderByStartDateDesc(athlete.getId(), startDate);
+            } else {
+                activities = activityRepository.findByAthleteIdOrderByStartDateDesc(athlete.getId());
+            }
             Activity lastRun = null;
             
             for (Activity act : activities) {

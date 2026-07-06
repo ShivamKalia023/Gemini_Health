@@ -356,9 +356,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadLeaderboard() {
         if (!leaderboardList) return;
+        const timeFilter = window.dashboardTimeFilter || 'all';
         
         try {
-            const res = await fetch('/api/dashboard/leaderboard');
+            const res = await fetch(`/api/dashboard/leaderboard?timeFilter=${timeFilter}`);
             const data = await res.json();
             
             if (data.length === 0) {
@@ -410,9 +411,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadGlobalFeed() {
         if (!globalFeedList) return;
+        const timeFilter = window.dashboardTimeFilter || 'all';
         
         try {
-            const res = await fetch('/api/dashboard/feed');
+            const res = await fetch(`/api/dashboard/feed?timeFilter=${timeFilter}`);
             window.allGlobalActivities = await res.json();
             if (typeof renderGlobalFeed === 'function') {
                 renderGlobalFeed();
@@ -778,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dropdown.style.pointerEvents = 'none';
             dropdown.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
 
-            const createDropdownLink = (text, icon, onClick) => {
+            const createDropdownLink = (text, onClick) => {
                 const link = document.createElement('button');
                 link.style.width = '100%';
                 link.style.padding = '12px 16px';
@@ -786,14 +788,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.style.border = 'none';
                 link.style.color = 'var(--text-primary, #1a1a1a)';
                 link.style.fontSize = '14px';
-                link.style.fontWeight = '600';
+                link.style.fontFamily = "'Outfit', 'Inter', sans-serif";
+                link.style.fontWeight = '500';
                 link.style.textAlign = 'left';
                 link.style.cursor = 'pointer';
-                link.style.display = 'flex';
-                link.style.alignItems = 'center';
-                link.style.gap = '10px';
+                link.style.display = 'block';
                 link.style.transition = 'all 0.2s';
-                link.innerHTML = `<span>${icon}</span> <span>${text}</span>`;
+                link.innerHTML = `<span>${text}</span>`;
                 link.addEventListener('mouseenter', () => {
                     link.style.background = 'rgba(233, 84, 32, 0.08)';
                     link.style.color = 'var(--color-orange, #e95420)';
@@ -806,21 +807,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 return link;
             };
 
-            const profileBtn = createDropdownLink('My Profile', '👤', () => {
+            const profileBtn = createDropdownLink('My Profile', () => {
                 window.location.href = `profile.html?id=${athleteId}`;
             });
 
-            const adminBtn = createDropdownLink('Admin Panel', '🛡️', () => {
+            const adminBtn = createDropdownLink('Admin Panel', () => {
                 window.location.href = 'admin.html';
             });
 
-            const logoutBtn = createDropdownLink('Log Out', '🚪', () => {
+            const logoutBtn = createDropdownLink('Log Out', () => {
                 document.cookie = "athlete_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                 document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                 window.location.href = "welcome.html";
             });
 
-            const deleteBtn = createDropdownLink('Delete My Account', '⚠️', () => {
+            const deleteBtn = createDropdownLink('Delete My Account', () => {
                 showDeleteConfirmationModal(athleteId, athlete.name);
             });
             deleteBtn.style.color = 'var(--color-red, #dc2626)';
@@ -1035,11 +1036,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Handle time filters (Visual only for now)
+    // Handle time filters
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
+            
+            const filterText = e.target.textContent.trim().toUpperCase();
+            if (filterText === 'TODAY') window.dashboardTimeFilter = 'today';
+            else if (filterText === 'THIS WEEK') window.dashboardTimeFilter = 'week';
+            else if (filterText === 'THIS MONTH') window.dashboardTimeFilter = 'month';
+            else if (filterText === 'THIS YEAR') window.dashboardTimeFilter = 'year';
+            else window.dashboardTimeFilter = 'all';
+            
+            if (document.getElementById('global-feed-list')) {
+                document.getElementById('global-feed-list').innerHTML = '<div class="loading-text">Loading feed...</div>';
+                if (typeof loadGlobalFeed === 'function') loadGlobalFeed();
+            }
+            if (document.getElementById('leaderboard-list')) {
+                document.getElementById('leaderboard-list').innerHTML = '<tr><td colspan="4" class="loading-text">Loading leaderboard...</td></tr>';
+                if (typeof loadLeaderboard === 'function') loadLeaderboard();
+            }
         });
     });
 
@@ -1263,50 +1280,28 @@ function initFilters() {
     // Global Feed Listeners
     const dbType = document.getElementById('dashboard-feed-type') || document.getElementById('home-feed-type');
     const dbSort = document.getElementById('dashboard-feed-sort') || document.getElementById('home-feed-sort');
-    const dbApply = document.getElementById('dashboard-feed-apply') || document.getElementById('home-feed-apply');
-    const dbReset = document.getElementById('dashboard-feed-reset') || document.getElementById('home-feed-reset');
 
-    if (dbApply) {
-        dbApply.addEventListener('click', () => {
-            if (dbType) window.globalFilterType = dbType.value;
-            if (dbSort) window.globalFilterSort = dbSort.value;
-            window.renderGlobalFeed();
-        });
-    }
-    
-    if (dbReset) {
-        dbReset.addEventListener('click', () => {
-            window.globalFilterType = 'all';
-            window.globalFilterSort = 'newest';
-            if(dbType) dbType.value = 'all';
-            if(dbSort) dbSort.value = 'newest';
-            window.renderGlobalFeed();
-        });
-    }
+    const updateGlobalFeed = () => {
+        if (dbType) window.globalFilterType = dbType.value;
+        if (dbSort) window.globalFilterSort = dbSort.value;
+        window.renderGlobalFeed();
+    };
+
+    if (dbType) dbType.addEventListener('change', updateGlobalFeed);
+    if (dbSort) dbSort.addEventListener('change', updateGlobalFeed);
 
     // Profile Feed Listeners
     const pfType = document.getElementById('profile-feed-type');
     const pfSort = document.getElementById('profile-feed-sort');
-    const pfApply = document.getElementById('profile-feed-apply');
-    const pfReset = document.getElementById('profile-feed-reset');
 
-    if (pfApply) {
-        pfApply.addEventListener('click', () => {
-            if (pfType) window.profileFilterType = pfType.value;
-            if (pfSort) window.profileFilterSort = pfSort.value;
-            window.renderProfileFeed();
-        });
-    }
+    const updateProfileFeed = () => {
+        if (pfType) window.profileFilterType = pfType.value;
+        if (pfSort) window.profileFilterSort = pfSort.value;
+        window.renderProfileFeed();
+    };
 
-    if (pfReset) {
-        pfReset.addEventListener('click', () => {
-            window.profileFilterType = 'all';
-            window.profileFilterSort = 'newest';
-            if(pfType) pfType.value = 'all';
-            if(pfSort) pfSort.value = 'newest';
-            window.renderProfileFeed();
-        });
-    }
+    if (pfType) pfType.addEventListener('change', updateProfileFeed);
+    if (pfSort) pfSort.addEventListener('change', updateProfileFeed);
 }
 
 // Attempt to initialize immediately (in case DOM is already ready)

@@ -16,4 +16,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findByAthleteIdAndStartDateBetween(Long athleteId, LocalDateTime start, LocalDateTime end);
     
     List<Activity> findTop50ByOrderByStartDateDesc();
+    List<Activity> findTop50ByStartDateAfterOrderByStartDateDesc(LocalDateTime startDate);
+    List<Activity> findByAthleteIdAndStartDateAfterOrderByStartDateDesc(Long athleteId, LocalDateTime startDate);
 }
