@@ -988,7 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    initUserMenu();
+    // initUserMenu is now handled by navbar.js
 
     if (deleteProfileBtn) {
         deleteProfileBtn.addEventListener('click', async () => {

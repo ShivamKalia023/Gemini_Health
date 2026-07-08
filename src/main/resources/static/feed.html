@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Feed - GFG Tracker</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.10">
+    <link rel="stylesheet" href="css/feed.css?v=1.0.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="js/navbar.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <header class="top-nav"></header>
+
+    <div class="app-container" style="max-width: 100%; padding-top: 20px;">
+        <main class="feed-container">
+            <!-- Create Post Card -->
+            <div class="create-post-card">
+                <textarea id="post-caption-input" class="create-post-textarea" placeholder="Share your latest workout or thoughts..."></textarea>
+                
+                <div id="selected-activity-preview" style="display:none; margin-bottom: 12px;" class="post-activity-card">
+                    <!-- Selected activity preview will be injected here -->
+                </div>
+
+                <div class="create-post-actions">
+                    <button id="open-activity-picker-btn" class="activity-picker-btn">
+                        <span style="font-size: 16px;">+</span> Attach Activity
+                    </button>
+                    <button id="submit-post-btn" class="post-btn">Post</button>
+                </div>
+            </div>
+
+            <!-- Feed Posts Container -->
+            <div id="feed-posts-container">
+                <div class="loading-spinner">Loading feed...</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Activity Picker Modal -->
+    <div id="activity-picker-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select an Activity to Share</h3>
+                <button id="close-modal-btn" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="activity-list-container">
+                    <div class="loading-spinner">Loading your recent activities...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/app.js?v=1.0.9"></script>
+    <script src="js/feed.js?v=1.0.0"></script>
+</body>
+</html>
