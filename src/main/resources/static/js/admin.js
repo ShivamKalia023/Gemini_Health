@@ -1,6 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     loadDashboard();
+
+    // Attach static event listeners
+    const btnAddChallenge = document.getElementById('btn-add-challenge');
+    if (btnAddChallenge) btnAddChallenge.addEventListener('click', () => openChallengeModal());
+
+    const btnCloseModal = document.getElementById('btn-close-modal');
+    if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
+
+    const btnCloseChallengeModal = document.getElementById('btn-close-challenge-modal');
+    if (btnCloseChallengeModal) btnCloseChallengeModal.addEventListener('click', closeChallengeModal);
 });
 
 function initNavigation() {
@@ -73,17 +83,17 @@ function loadUsers(status) {
                 let actions = '';
                 if (status === 'pending') {
                     actions = `
-                        <button class="action-btn btn-approve" onclick="approveUser(${user.id})">Approve</button>
-                        <button class="action-btn btn-reject" onclick="confirmReject(${user.id})">Reject</button>
+                        <button class="action-btn btn-approve" data-action="approve-user" data-user-id="${user.id}">Approve</button>
+                        <button class="action-btn btn-reject" data-action="reject-user" data-user-id="${user.id}">Reject</button>
                     `;
                 } else if (status === 'approved') {
                     actions = `
-                        <button class="action-btn btn-revoke" onclick="revokeUser(${user.id})">Suspend</button>
+                        <button class="action-btn btn-revoke" data-action="revoke-user" data-user-id="${user.id}">Suspend</button>
                     `;
                 } else if (status === 'rejected') {
                     actions = `
-                        <button class="action-btn btn-approve" onclick="approveUser(${user.id})">Approve</button>
-                        <button class="action-btn btn-reject" onclick="confirmDelete(${user.id})">Delete</button>
+                        <button class="action-btn btn-approve" data-action="approve-user" data-user-id="${user.id}">Approve</button>
+                        <button class="action-btn btn-reject" data-action="delete-user" data-user-id="${user.id}">Delete</button>
                     `;
                 }
                 
@@ -202,14 +212,14 @@ function loadChallenges() {
                 const endDate = new Date(c.endDate).toLocaleDateString();
                 
                 let actions = `
-                    <button class="action-btn" onclick='openChallengeModal(${JSON.stringify(c).replace(/'/g, "&#39;")})'>Edit</button>
-                    <button class="action-btn btn-reject" onclick="confirmDeleteChallenge(${c.id})">Delete</button>
+                    <button class="action-btn" data-action="edit-challenge" data-challenge='${JSON.stringify(c).replace(/'/g, "&#39;")}'>Edit</button>
+                    <button class="action-btn btn-reject" data-action="delete-challenge" data-challenge-id="${c.id}">Delete</button>
                 `;
                 
                 if (c.status === 'Draft' || c.status === 'Scheduled') {
-                    actions += `<button class="action-btn btn-approve" onclick="updateChallengeStatus(${c.id}, 'Active')">Start</button>`;
+                    actions += `<button class="action-btn btn-approve" data-action="update-challenge-status" data-challenge-id="${c.id}" data-status="Active">Start</button>`;
                 } else if (c.status === 'Active') {
-                    actions += `<button class="action-btn btn-revoke" onclick="updateChallengeStatus(${c.id}, 'Completed')">End</button>`;
+                    actions += `<button class="action-btn btn-revoke" data-action="update-challenge-status" data-challenge-id="${c.id}" data-status="Completed">End</button>`;
                 }
 
                 tr.innerHTML = `
@@ -346,3 +356,26 @@ function updateChallengeStatus(id, status) {
         loadChallenges();
     });
 }
+
+// Global Event Delegation for dynamic buttons
+document.addEventListener('click', (e) => {
+    const target = e.target;
+    if (!target) return;
+
+    if (target.matches('[data-action="approve-user"]')) {
+        approveUser(target.getAttribute('data-user-id'));
+    } else if (target.matches('[data-action="reject-user"]')) {
+        confirmReject(target.getAttribute('data-user-id'));
+    } else if (target.matches('[data-action="revoke-user"]')) {
+        revokeUser(target.getAttribute('data-user-id'));
+    } else if (target.matches('[data-action="delete-user"]')) {
+        confirmDelete(target.getAttribute('data-user-id'));
+    } else if (target.matches('[data-action="edit-challenge"]')) {
+        const challengeData = JSON.parse(target.getAttribute('data-challenge').replace(/&#39;/g, "'"));
+        openChallengeModal(challengeData);
+    } else if (target.matches('[data-action="delete-challenge"]')) {
+        confirmDeleteChallenge(target.getAttribute('data-challenge-id'));
+    } else if (target.matches('[data-action="update-challenge-status"]')) {
+        updateChallengeStatus(target.getAttribute('data-challenge-id'), target.getAttribute('data-status'));
+    }
+});

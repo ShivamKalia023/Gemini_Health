@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="stat-value">${elev}</span>
                 </div>
             </div>
-            <button type="button" style="align-self: flex-start; background:none; border:none; color:#ef4444; font-size:13px; cursor:pointer; margin-top:8px;" onclick="removeAttachedActivity()">Remove Activity</button>
+            <button type="button" style="align-self: flex-start; background:none; border:none; color:#ef4444; font-size:13px; cursor:pointer; margin-top:8px;" data-action="remove-activity">Remove Activity</button>
         `;
     }
 
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         el.id = `post-${post.id}`;
 
         const isOwner = post.athlete.id == currentAthleteId;
-        const deleteBtnHtml = (isOwner || currentUserIsAdmin) ? `<button class="post-delete-btn" onclick="deletePost(${post.id})">Delete</button>` : '';
+        const deleteBtnHtml = (isOwner || currentUserIsAdmin) ? `<button class="post-delete-btn" data-action="delete-post" data-post-id="${post.id}">Delete</button>` : '';
 
         const timeAgo = formatTimeAgo(post.createdAt);
         const name = post.athlete.name || 'Unknown User';
@@ -299,10 +299,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ${captionHtml}
             ${activityHtml}
             <div class="post-actions">
-                <button class="action-btn ${post.likedByCurrentUser ? 'liked' : ''}" id="like-btn-${post.id}" onclick="toggleLike(${post.id}, ${post.likedByCurrentUser})">
+                <button class="action-btn ${post.likedByCurrentUser ? 'liked' : ''}" id="like-btn-${post.id}" data-action="toggle-like" data-post-id="${post.id}" data-liked="${post.likedByCurrentUser}">
                     <span style="${likeIconColor}">♥</span> <span id="like-count-${post.id}">${post.likeCount || 0}</span>
                 </button>
-                <button class="action-btn" onclick="toggleComments(${post.id})">
+                <button class="action-btn" data-action="toggle-comments" data-post-id="${post.id}">
                     💬 <span id="comment-count-${post.id}">${post.commentCount || 0}</span>
                 </button>
             </div>
@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="comment-list" id="comment-list-${post.id}"></div>
                 <div class="comment-input-area">
                     <input type="text" class="comment-input" id="comment-input-${post.id}" placeholder="Add a comment...">
-                    <button class="comment-submit-btn" onclick="submitComment(${post.id})">Post</button>
+                    <button class="comment-submit-btn" data-action="submit-comment" data-post-id="${post.id}">Post</button>
                 </div>
             </div>
         `;
@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.remove('liked');
             iconSpan.style.color = '';
             countSpan.textContent = count > 0 ? count - 1 : 0;
-            btn.onclick = () => toggleLike(postId, false);
+            btn.setAttribute('data-liked', 'false');
             
             await fetch(`/api/feed/${postId}/like`, { method: 'DELETE' });
         } else {
@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('liked');
             iconSpan.style.color = '#ef4444';
             countSpan.textContent = count + 1;
-            btn.onclick = () => toggleLike(postId, true);
+            btn.setAttribute('data-liked', 'true');
             
             await fetch(`/api/feed/${postId}/like`, { method: 'POST' });
         }
@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="comment-content">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span class="comment-author">${name}</span>
-                    ${canDelete ? `<button style="background:none; border:none; color:#ef4444; font-size:11px; cursor:pointer;" onclick="deleteComment(${comment.id}, ${comment.post.id || comment.post})">Delete</button>` : ''}
+                    ${canDelete ? `<button style="background:none; border:none; color:#ef4444; font-size:11px; cursor:pointer;" data-action="delete-comment" data-comment-id="${comment.id}" data-post-id="${comment.post.id || comment.post}">Delete</button>` : ''}
                 </div>
                 <div class="comment-text">${escapeHtml(comment.content)}</div>
             </div>
@@ -509,4 +509,55 @@ document.addEventListener('DOMContentLoaded', () => {
                  .replace(/"/g, "&quot;")
                  .replace(/'/g, "&#039;");
     }
+
+    // --- Global Event Delegation ---
+    document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (!target) return;
+
+        // Activity Picker Remove Activity
+        if (target.matches('[data-action="remove-activity"]')) {
+            window.removeAttachedActivity();
+            return;
+        }
+
+        // Delete Post
+        if (target.matches('[data-action="delete-post"]')) {
+            const postId = target.getAttribute('data-post-id');
+            if (postId) window.deletePost(postId);
+            return;
+        }
+
+        // Toggle Like
+        const likeBtn = target.closest('[data-action="toggle-like"]');
+        if (likeBtn) {
+            const postId = likeBtn.getAttribute('data-post-id');
+            const liked = likeBtn.getAttribute('data-liked') === 'true';
+            if (postId) window.toggleLike(postId, liked);
+            return;
+        }
+
+        // Toggle Comments
+        const commentBtn = target.closest('[data-action="toggle-comments"]');
+        if (commentBtn) {
+            const postId = commentBtn.getAttribute('data-post-id');
+            if (postId) window.toggleComments(postId);
+            return;
+        }
+
+        // Submit Comment
+        if (target.matches('[data-action="submit-comment"]')) {
+            const postId = target.getAttribute('data-post-id');
+            if (postId) window.submitComment(postId);
+            return;
+        }
+
+        // Delete Comment
+        if (target.matches('[data-action="delete-comment"]')) {
+            const commentId = target.getAttribute('data-comment-id');
+            const postId = target.getAttribute('data-post-id');
+            if (commentId && postId) window.deleteComment(commentId, postId);
+            return;
+        }
+    });
 });

@@ -136,56 +136,10 @@
         </p>
 
         <div class="btn-container">
-            <button class="btn-primary" onclick="checkStatus()" id="refresh-btn">Refresh Status</button>
-            <button class="btn-secondary" onclick="logout()">Log Out</button>
+            <button class="btn-primary" id="refresh-btn">Refresh Status</button>
+            <button class="btn-secondary" id="logout-btn">Log Out</button>
         </div>
     </div>
-
-    <script>
-        function checkStatus() {
-            const btn = document.getElementById('refresh-btn');
-            const originalText = btn.innerText;
-            btn.innerText = 'Checking...';
-            btn.disabled = true;
-
-            fetch('/api/auth/status')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'APPROVED') {
-                        window.location.href = '/home.html';
-                    } else if (data.status === 'REJECTED') {
-                        window.location.href = '/welcome.html?deleted=true';
-                    } else {
-                        setTimeout(() => {
-                            btn.innerText = originalText;
-                            btn.disabled = false;
-                        }, 500);
-                    }
-                })
-                .catch(() => {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                });
-        }
-
-        function logout() {
-            document.cookie = "athlete_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-            window.location.href = '/welcome.html';
-        }
-
-        // Auto-poll every 15 seconds
-        setInterval(() => {
-            fetch('/api/auth/status')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'APPROVED') {
-                        window.location.href = '/home.html';
-                    } else if (data.status === 'REJECTED') {
-                        window.location.href = '/welcome.html?deleted=true';
-                    }
-                })
-                .catch(() => {});
-        }, 15000);
-    </script>
+    <script src="/js/waiting.js"></script>
 </body>
 </html>
