@@ -184,7 +184,7 @@ public class AthleteController {
                 response.addCookie(adminCookie);
             }
             
-            return new RedirectView("/home.html?strava_success=true&name=" + URLEncoder.encode(profile.getName(), StandardCharsets.UTF_8));
+            return new RedirectView("/home.html?login=success");
         } catch (Exception e) {
             log.error("Strava callback error: " + e.getMessage());
             return new RedirectView("/welcome.html?strava_error=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
