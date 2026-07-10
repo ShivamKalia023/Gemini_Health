@@ -17,7 +17,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/feed")
-@CrossOrigin(origins = "*")
 @Transactional
 public class FeedController {
 

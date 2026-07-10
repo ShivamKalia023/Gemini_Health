@@ -26,7 +26,9 @@ public class AuthenticationFilter implements Filter {
             "/leaderboard.html",
             "/challenges.html",
             "/profile.html",
-            "/activity.html"
+            "/activity.html",
+            "/feed.html",
+            "/diagnostic.html"
     );
 
     private static final List<String> ADMIN_PAGES = Arrays.asList(
@@ -124,6 +126,16 @@ public class AuthenticationFilter implements Filter {
                     return;
                 }
             }
+
+            // Populate Spring Security Context
+            java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
+            authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"));
+            if (profile.getRole() == AthleteProfile.Role.ADMIN) {
+                authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
+            }
+            org.springframework.security.authentication.UsernamePasswordAuthenticationToken authentication = 
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(profile.getId().toString(), null, authorities);
+            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         chain.doFilter(request, response);

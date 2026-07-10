@@ -1,8 +1,21 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     let performanceChart = null;
     let zonesChart = null;
 
-    const isAdmin = document.cookie.includes('admin_token=true');
+    window.currentUser = null;
+    let isAdmin = false;
+    let currentAthleteId = null;
+
+    try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+            window.currentUser = await res.json();
+            isAdmin = window.currentUser.role === 'ADMIN';
+            currentAthleteId = window.currentUser.id;
+        }
+    } catch (e) {
+        console.error("Auth check failed", e);
+    }
 
     // Init charts safely
     if (typeof initPerformanceChart === 'function') {
@@ -34,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ticker Elements
     const lastUpdatedTicker = document.getElementById('last-updated-ticker');
 
-    let currentAthleteId = null;
     let currentChartRange = '7d';
     let currentCustomStart = '';
     let currentCustomEnd = '';
@@ -91,8 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         challengesList.innerHTML = '<div class="loading-text">Loading challenges...</div>';
         
-        const athleteIdCookie = document.cookie.split('; ').find(row => row.startsWith('athlete_id='));
-        const currentAthleteId = athleteIdCookie ? parseInt(athleteIdCookie.split('=')[1]) : null;
+        const currentAthleteId = window.currentUser ? window.currentUser.id : null;
 
         try {
             const res = await fetch(`/api/challenges/${type}`);
@@ -676,8 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const navActions = document.querySelector('.nav-actions');
         if (!navActions) return;
 
-        const athleteIdCookie = document.cookie.split('; ').find(row => row.startsWith('athlete_id='));
-        const athleteId = athleteIdCookie ? athleteIdCookie.split('=')[1] : null;
+        const athleteId = window.currentUser ? window.currentUser.id : null;
 
         if (!athleteId) {
             // Unauthenticated: Inject Connect with Strava Button
@@ -816,9 +826,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const logoutBtn = createDropdownLink('Log Out', () => {
-                document.cookie = "athlete_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                window.location.href = "welcome.html";
+                fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+                    window.location.href = "welcome.html";
+                });
             });
 
             const deleteBtn = createDropdownLink('Delete My Account', () => {
@@ -969,9 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errorData.error || 'Failed to delete account');
                 }
 
-                document.cookie = "athlete_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
+                await fetch('/api/auth/logout', { method: 'POST' });
                 window.location.href = '/welcome.html?deleted=true';
             } catch (err) {
                 console.error('Delete failed:', err);

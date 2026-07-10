@@ -22,7 +22,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/challenges")
-@CrossOrigin(origins = "*")
 @Transactional
 public class ChallengeController {
 

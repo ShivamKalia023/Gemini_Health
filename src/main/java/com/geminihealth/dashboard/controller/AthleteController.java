@@ -33,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @RestController
 @RequestMapping("/api/athletes")
-@CrossOrigin(origins = "*")
 @Transactional
 public class AthleteController {
 
@@ -168,6 +167,10 @@ public class AthleteController {
             Cookie authCookie = new Cookie("athlete_id", profile.getId().toString());
             authCookie.setPath("/");
             authCookie.setMaxAge(60 * 60 * 24 * 30); // 30 days
+            authCookie.setHttpOnly(true);
+            authCookie.setAttribute("SameSite", "Lax");
+            // Only set secure if it's HTTPS, based on the current request
+            authCookie.setSecure(request.isSecure());
             response.addCookie(authCookie);
 
             // Check if admin
@@ -175,6 +178,9 @@ public class AthleteController {
                 Cookie adminCookie = new Cookie("admin_token", "true");
                 adminCookie.setPath("/");
                 adminCookie.setMaxAge(60 * 60 * 24 * 30); // 30 days
+                adminCookie.setHttpOnly(true);
+                adminCookie.setAttribute("SameSite", "Lax");
+                adminCookie.setSecure(request.isSecure());
                 response.addCookie(adminCookie);
             }
             

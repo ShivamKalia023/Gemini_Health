@@ -34,8 +34,19 @@ async function initUserMenuShared() {
     const navActions = document.querySelector('.nav-actions');
     if (!navActions) return;
 
-    const athleteIdCookie = document.cookie.split('; ').find(row => row.startsWith('athlete_id='));
-    const athleteId = athleteIdCookie ? athleteIdCookie.split('=')[1] : null;
+    let athleteId = null;
+    let isAdmin = false;
+
+    try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+            const user = await res.json();
+            athleteId = user.id;
+            isAdmin = user.role === 'ADMIN';
+        }
+    } catch (e) {
+        console.error("Auth check failed in navbar", e);
+    }
 
     if (!athleteId) {
         navActions.innerHTML = '';
@@ -154,12 +165,20 @@ async function initUserMenuShared() {
             window.location.href = `profile.html?id=${athleteId}`;
         });
         
+        let adminLink = null;
+        if (isAdmin) {
+            adminLink = createDropdownLink('🛡️ Admin Panel', () => {
+                window.location.href = 'admin.html';
+            });
+        }
+        
         const logoutLink = createDropdownLink('🚪 Log Out', () => {
-            document.cookie = 'athlete_id=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            document.cookie = 'admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            window.location.href = 'welcome.html';
+            fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+                window.location.href = 'welcome.html';
+            });
         });
 
+        if (adminLink) dropdown.appendChild(adminLink);
         dropdown.appendChild(profileLink);
         dropdown.appendChild(logoutLink);
 

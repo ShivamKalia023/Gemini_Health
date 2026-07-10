@@ -18,38 +18,26 @@ document.addEventListener('DOMContentLoaded', () => {
     let isLoading = false;
     let hasMorePosts = true;
 
+    let currentUserIsAdmin = false;
+
     // Authentication Check
-    function getAthleteId() {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.startsWith('athlete_id=')) {
-                return cookie.substring('athlete_id='.length);
+    async function initAuth() {
+        try {
+            const res = await fetch('/api/auth/me');
+            if (res.ok) {
+                const user = await res.json();
+                currentAthleteId = user.id;
+                currentUserIsAdmin = user.role === 'ADMIN';
+                fetchPosts();
+            } else {
+                postsContainer.innerHTML = '<div class="loading-spinner">Please log in to view the feed.</div>';
             }
+        } catch (e) {
+            postsContainer.innerHTML = '<div class="loading-spinner">Please log in to view the feed.</div>';
         }
-        return null;
     }
 
-    currentAthleteId = getAthleteId();
-    if (!currentAthleteId) {
-        postsContainer.innerHTML = '<div class="loading-spinner">Please log in to view the feed.</div>';
-        return;
-    }
-
-    function isAdmin() {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.startsWith('admin_token=')) {
-                return cookie.substring('admin_token='.length) === 'true';
-            }
-        }
-        return false;
-    }
-    const currentUserIsAdmin = isAdmin();
-
-    // Initialization
-    fetchPosts();
+    initAuth();
 
     // Infinite Scroll
     window.addEventListener('scroll', () => {
