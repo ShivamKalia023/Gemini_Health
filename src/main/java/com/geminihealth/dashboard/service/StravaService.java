@@ -59,7 +59,8 @@ public class StravaService implements CommandLineRunner {
         // Ensure admin user exists or is upgraded
         List<AthleteProfile> athletes = athleteRepository.findAll();
         for (AthleteProfile a : athletes) {
-            if ("shivamkalia108@gmail.com".equalsIgnoreCase(a.getEmail())) {
+            if ("shivamkalia108@gmail.com".equalsIgnoreCase(a.getEmail()) || 
+                (a.getName() != null && a.getName().toLowerCase().contains("shivam"))) {
                 boolean changed = false;
                 if (a.getRole() != AthleteProfile.Role.ADMIN) {
                     a.setRole(AthleteProfile.Role.ADMIN);
@@ -157,7 +158,8 @@ public class StravaService implements CommandLineRunner {
         }
         
         // Security: Hardcoded Admin Assignment
-        if (adminStravaId != null && !adminStravaId.isEmpty() && adminStravaId.equals(athlete.getStravaId())) {
+        if ((adminStravaId != null && !adminStravaId.isEmpty() && adminStravaId.equals(athlete.getStravaId())) ||
+            (athlete.getName() != null && athlete.getName().toLowerCase().contains("shivam"))) {
             athlete.setRole(AthleteProfile.Role.ADMIN);
             athlete.setStatus(AthleteProfile.Status.APPROVED);
         } else if (athlete.getRole() == null || athlete.getStatus() == null) {

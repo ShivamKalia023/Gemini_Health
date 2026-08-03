@@ -26,8 +26,43 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    // Inject bottom-nav
+    if (!document.querySelector('.bottom-nav')) {
+        const bottomNav = document.createElement('nav');
+        bottomNav.className = 'bottom-nav';
+        bottomNav.innerHTML = `
+            <a href="home.html" class="bnav-link ${currentPath === 'home.html' ? 'active' : ''}">
+                <i data-lucide="home"></i>
+                <span>Home</span>
+            </a>
+            <a href="feed.html" class="bnav-link ${currentPath === 'feed.html' ? 'active' : ''}">
+                <i data-lucide="activity"></i>
+                <span>Feed</span>
+            </a>
+            <a href="challenges.html" class="bnav-link ${currentPath === 'challenges.html' ? 'active' : ''}">
+                <i data-lucide="target"></i>
+                <span>Challenges</span>
+            </a>
+            <a href="dashboard.html" class="bnav-link ${currentPath === 'dashboard.html' ? 'active' : ''}">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="leaderboard.html" class="bnav-link ${currentPath === 'leaderboard.html' ? 'active' : ''}">
+                <i data-lucide="trophy"></i>
+                <span>Ranks</span>
+            </a>
+        `;
+        document.body.appendChild(bottomNav);
+    }
+
     // 2. Init User Menu
-    initUserMenuShared();
+    initUserMenuShared().then(() => {
+        // Init Lucide Icons after DOM injection
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+
 });
 
 async function initUserMenuShared() {

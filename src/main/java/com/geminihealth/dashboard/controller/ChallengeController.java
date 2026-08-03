@@ -62,7 +62,7 @@ public class ChallengeController {
             List<Activity> activities = activityRepository.findByAthleteIdAndStartDateBetween(participant.getId(), challenge.getStartDate(), challenge.getEndDate());
             double progress = 0;
             for (Activity activity : activities) {
-                if (challenge.getActivityType() == null || challenge.getActivityType().equalsIgnoreCase("any") || (activity.getType() != null && activity.getType().toLowerCase().contains(challenge.getActivityType().toLowerCase()))) {
+                if (com.geminihealth.dashboard.service.ActivityTypeMapper.matches(challenge.getActivityType(), activity.getType())) {
                     if ("distance".equalsIgnoreCase(challenge.getGoalType())) {
                         progress += (activity.getDistance() != null ? activity.getDistance() : 0);
                     } else if ("time".equalsIgnoreCase(challenge.getGoalType())) {

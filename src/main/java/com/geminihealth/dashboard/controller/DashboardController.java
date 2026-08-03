@@ -45,14 +45,14 @@ public class DashboardController {
         if (timeFilter == null || timeFilter.equalsIgnoreCase("all")) {
             return null;
         }
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneOffset.UTC);
         LocalDate today = now.toLocalDate();
         
         switch (timeFilter.toLowerCase()) {
             case "today":
                 return LocalDateTime.of(today, LocalTime.MIN);
             case "week":
-                return LocalDateTime.of(today.minusDays(7), LocalTime.MIN);
+                return LocalDateTime.of(today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)), LocalTime.MIN);
             case "month":
                 return LocalDateTime.of(today.withDayOfMonth(1), LocalTime.MIN);
             case "year":

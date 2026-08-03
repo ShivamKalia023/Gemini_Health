@@ -413,3 +413,163 @@
     color: #94a3b8;
     font-weight: 500;
 }
+
+
+/* --- Feed Redesign Overrides --- */
+
+/* Native social feed look */
+.post-card {
+    border-radius: var(--border-radius-card, 16px) !important;
+    box-shadow: var(--shadow-soft, 0 4px 20px rgba(0,0,0,0.05)) !important;
+    padding: 24px !important;
+    margin-bottom: 24px !important;
+    border: none !important;
+}
+
+.post-header {
+    margin-bottom: 20px !important;
+}
+
+.author-avatar {
+    width: 48px !important;
+    height: 48px !important;
+}
+
+.author-name {
+    font-size: 16px !important;
+}
+
+.post-caption {
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+    color: #1e293b !important;
+    margin-bottom: 20px !important;
+}
+
+.post-actions {
+    padding-top: 16px !important;
+    margin-top: 20px !important;
+    border-top: 1px solid #f1f5f9 !important;
+}
+
+.action-btn {
+    font-size: 15px !important;
+    padding: 8px 12px !important;
+}
+
+/* Floating Action Button */
+.fab-create-post {
+    display: none; /* hidden on desktop by default */
+}
+
+@media (max-width: 768px) {
+    .fab-create-post {
+        display: flex;
+        position: fixed;
+        bottom: 85px; /* Above bottom nav */
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background-color: var(--color-orange, #e95420);
+        color: white;
+        box-shadow: 0 4px 15px rgba(233, 84, 32, 0.4);
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        cursor: pointer;
+        border: none;
+        transition: transform 0.2s;
+    }
+    .fab-create-post:active {
+        transform: scale(0.95);
+    }
+    
+    /* Make feed container edge-to-edge on very small screens, or keep small padding */
+    .feed-container {
+        padding: 0 10px !important;
+    }
+    .post-card {
+        padding: 16px !important;
+    }
+}
+
+
+/* --- Feed Redesign Overrides --- */
+
+/* Native social feed look */
+.post-card {
+    border-radius: var(--border-radius-card, 16px) !important;
+    box-shadow: var(--shadow-soft, 0 4px 20px rgba(0,0,0,0.05)) !important;
+    padding: 24px !important;
+    margin-bottom: 24px !important;
+    border: none !important;
+}
+
+.post-header {
+    margin-bottom: 20px !important;
+}
+
+.author-avatar {
+    width: 48px !important;
+    height: 48px !important;
+}
+
+.author-name {
+    font-size: 16px !important;
+}
+
+.post-caption {
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+    color: #1e293b !important;
+    margin-bottom: 20px !important;
+}
+
+.post-actions {
+    padding-top: 16px !important;
+    margin-top: 20px !important;
+    border-top: 1px solid #f1f5f9 !important;
+}
+
+.action-btn {
+    font-size: 15px !important;
+    padding: 8px 12px !important;
+}
+
+/* Floating Action Button */
+.fab-create-post {
+    display: none; /* hidden on desktop by default */
+}
+
+@media (max-width: 768px) {
+    .fab-create-post {
+        display: flex;
+        position: fixed;
+        bottom: 85px; /* Above bottom nav */
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background-color: var(--color-orange, #e95420);
+        color: white;
+        box-shadow: 0 4px 15px rgba(233, 84, 32, 0.4);
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        cursor: pointer;
+        border: none;
+        transition: transform 0.2s;
+    }
+    .fab-create-post:active {
+        transform: scale(0.95);
+    }
+    
+    /* Make feed container edge-to-edge on very small screens, or keep small padding */
+    .feed-container {
+        padding: 0 10px !important;
+    }
+    .post-card {
+        padding: 16px !important;
+    }
+}

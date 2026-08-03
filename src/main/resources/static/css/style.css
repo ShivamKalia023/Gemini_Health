@@ -1830,3 +1830,669 @@ html {
     }
 }
 
+
+
+/* ==========================================================================
+   MOBILE UI FIXES: DASHBOARD HEADER & TIME FILTERS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 16px;
+        margin-bottom: 24px;
+        width: 100%;
+        overflow: hidden; /* Prevent horizontal overflow */
+    }
+    
+    .dashboard-header .title-area {
+        width: 100%;
+    }
+    
+    .dashboard-header .time-filters {
+        width: 100%;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px; /* Room for scrollbar */
+        gap: 8px !important;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE and Edge */
+    }
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .dashboard-header .time-filters::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .dashboard-header .time-filters .filter-btn {
+        flex: 0 0 auto !important; /* Prevent shrinking */
+        white-space: nowrap !important; /* Keep text on one line */
+        background-color: var(--bg-body, #f5f5f5) !important;
+        border: 1px solid var(--border-color, #e5e7eb) !important;
+        border-radius: 20px !important; /* Pill shape chip */
+        padding: 8px 16px !important;
+        font-size: 11px !important;
+        color: var(--text-secondary, #6b7280) !important;
+    }
+    
+    .dashboard-header .time-filters .filter-btn.active {
+        background-color: var(--color-orange, #e95420) !important;
+        border-color: var(--color-orange, #e95420) !important;
+        color: #ffffff !important;
+    }
+}
+
+
+/* ==========================================================================
+   MOBILE UI REDESIGN OVERRIDES
+   ========================================================================== */
+
+/* --- Global Overrides --- */
+:root {
+    --border-radius-card: 16px;
+    --border-radius-btn: 12px;
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --shadow-hover: 0 8px 24px rgba(233, 84, 32, 0.15);
+}
+
+body {
+    -webkit-tap-highlight-color: transparent;
+    padding-bottom: 0; /* Updated in media query */
+}
+
+/* Upgrade existing cards to look more premium */
+.stat-card, .chart-card, .last-run-card, .feed-item, .leaderboard-item, .modern-challenge-card {
+    border-radius: var(--border-radius-card) !important;
+    box-shadow: var(--shadow-soft) !important;
+    border: 1px solid rgba(0, 0, 0, 0.03) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover, .chart-card:hover, .feed-item:hover, .modern-challenge-card:hover {
+    box-shadow: var(--shadow-hover) !important;
+    transform: translateY(-2px);
+}
+
+/* Enhance Buttons */
+button, .btn-participate, .view-all {
+    border-radius: var(--border-radius-btn) !important;
+    transition: all 0.2s ease;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* --- Bottom Navigation --- */
+.bottom-nav {
+    display: none; /* Hidden on desktop */
+}
+
+/* --- Mobile Specific Overrides --- */
+@media (max-width: 768px) {
+    body {
+        padding-bottom: 70px; /* Space for bottom nav */
+    }
+
+    .app-container {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+    }
+
+    .top-nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        padding: 0 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .top-nav .main-nav {
+        display: none !important; /* Hide desktop nav links */
+    }
+
+    .top-nav .brand h2 {
+        font-size: 16px;
+    }
+    
+    .top-nav .subtitle {
+        display: none; /* Hide subtitle on mobile for cleaner look */
+    }
+
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 65px;
+        background-color: var(--bg-card);
+        border-top: 1px solid var(--border-color);
+        z-index: 1000;
+        justify-content: space-around;
+        align-items: center;
+        padding: 0 10px;
+        box-shadow: 0 -2px 15px rgba(0,0,0,0.05);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bnav-link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 500;
+        gap: 4px;
+        width: 20%;
+        height: 100%;
+        position: relative;
+        transition: color 0.2s ease;
+    }
+
+    .bnav-link i, .bnav-link svg {
+        width: 22px;
+        height: 22px;
+        color: #94a3b8;
+        transition: transform 0.2s ease, stroke-width 0.2s ease, color 0.2s ease;
+    }
+
+    .bnav-link.active {
+        color: var(--color-orange);
+        font-weight: 600;
+    }
+    
+    .bnav-link.active i, .bnav-link.active svg {
+        color: var(--color-orange);
+        transform: translateY(-2px);
+        stroke-width: 2.5px;
+    }
+
+    .bnav-link.active::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40px;
+        height: 3px;
+        background-color: var(--color-orange);
+        border-bottom-left-radius: 3px;
+        border-bottom-right-radius: 3px;
+    }
+
+
+    /* Stack 3-column layout panels */
+    .sidebar, .leaderboard-panel, .feed-panel {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-right: none !important;
+        border-bottom: none !important;
+        padding: 16px !important;
+        overflow-y: visible !important;
+        height: auto !important;
+    }
+
+    .main-content, .dashboard-main {
+        padding: 16px !important;
+        overflow-y: visible !important;
+    }
+
+    /* Convert Tables to stacked cards on mobile if possible */
+    .activities-table, .activities-table tbody, .activities-table tr, .activities-table td {
+        display: block;
+        width: 100%;
+    }
+    .activities-table thead {
+        display: none; /* Hide table headers on mobile */
+    }
+    .activities-table tr {
+        margin-bottom: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius-card);
+        padding: 12px;
+        background: var(--bg-card);
+        box-shadow: var(--shadow-soft);
+    }
+    .activities-table td {
+        border-bottom: none;
+        padding: 4px 0;
+        text-align: left !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* Buttons touch targets */
+    button, .btn-participate, input[type="text"], select, .tab-btn {
+        min-height: 44px;
+    }
+
+    /* Dashboard specific */
+    .dashboard-columns {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 24px;
+    }
+    
+    .leaderboard-table, .leaderboard-table tbody, .leaderboard-table tr, .leaderboard-table td {
+         display: block;
+         width: 100%;
+    }
+    .leaderboard-table thead { display: none; }
+    .leaderboard-table tr {
+         margin-bottom: 8px;
+         background: var(--bg-card);
+         border-radius: var(--border-radius-card);
+         padding: 12px;
+         display: flex;
+         flex-wrap: wrap;
+         align-items: center;
+         justify-content: space-between;
+         box-shadow: var(--shadow-soft);
+    }
+    .leaderboard-table td { padding: 4px 0; border: none; }
+    .leaderboard-table td.acts-cell { display: none; } /* hide activities count on mobile to save space */
+    .rank-cell { font-size: 20px; font-weight: bold; color: var(--color-orange); margin-right: 12px;}
+    
+    /* Fix global feed list spacing */
+    .global-feed-list {
+        padding-bottom: 20px;
+    }
+}
+
+
+/* --- Challenges Redesign --- */
+.modern-challenge-card {
+    display: flex;
+    flex-direction: row;
+    background: var(--bg-card);
+    border-radius: var(--border-radius-card);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border-color);
+}
+
+.cc-left {
+    flex: 1;
+    min-width: 250px;
+    padding: 24px;
+    color: white;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+}
+
+.cc-left::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.4));
+    z-index: 1;
+}
+
+.cc-left-content {
+    position: relative;
+    z-index: 2;
+}
+
+.cc-status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.cc-title {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+.cc-desc {
+    font-size: 14px;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+.cc-middle {
+    flex: 2;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.cc-timeline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.cc-timeline-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.cc-icon {
+    font-size: 16px;
+}
+
+.cc-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.cc-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.cc-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cc-stats-row {
+    display: flex;
+    gap: 24px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+}
+
+.cc-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.cc-right {
+    flex: 0.8;
+    padding: 24px;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.btn-participate {
+    width: 100%;
+    max-width: 200px;
+    padding: 12px 20px;
+    border-radius: var(--border-radius-btn);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.btn-participate.active {
+    background: var(--color-orange);
+    color: white;
+}
+
+.btn-participate.leave {
+    background: transparent;
+    color: var(--color-red);
+    border: 1px solid var(--color-red);
+}
+
+.cc-reg-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.cc-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+@media (max-width: 900px) {
+    .modern-challenge-card {
+        flex-direction: column;
+    }
+    .cc-left::before {
+        background: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.8));
+    }
+    .cc-left {
+        padding: 30px 20px 20px;
+    }
+    .cc-middle {
+        padding: 20px;
+    }
+    .cc-timeline {
+        grid-template-columns: 1fr;
+    }
+    .cc-right {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding: 20px;
+    }
+    .btn-participate {
+        max-width: 100%;
+    }
+}
+
+
+/* --- Profile Redesign Overrides --- */
+
+.athlete-avatar-large {
+    border-radius: 50% !important; /* Circular avatar */
+    border: 3px solid var(--color-orange);
+    box-shadow: var(--shadow-soft);
+}
+
+.athlete-card {
+    border-radius: var(--border-radius-card) !important;
+    box-shadow: var(--shadow-soft) !important;
+    border: none !important;
+}
+
+@media (max-width: 900px) {
+    .athlete-profile-container {
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+    
+    .athlete-sidebar {
+        width: 100% !important;
+    }
+    
+    .split-layout {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+    
+    .profile-stats {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 12px !important;
+    }
+}
+@media (max-width: 480px) {
+    .profile-stats {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+
+/* ==========================================================================
+   MOBILE UI FIXES (HOME FEED, DASHBOARD SCROLL, CHAMPION OVERFLOW)
+   ========================================================================== */
+
+/* Fix 2: Dashboard/Global Horizontal Scrolling */
+body, html {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.app-container {
+    width: 100% !important; /* Override 100vw to prevent horizontal scrollbar overlap */
+    max-width: 100% !important;
+    overflow-x: hidden;
+}
+
+.chart-card, .stat-card, .last-run-card, .dashboard-main, .feed-section, .leaderboard-section {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.chart-container {
+    max-width: 100%;
+    overflow: hidden; /* Prevent canvas from breaking layout */
+}
+
+/* Fix 3 & 1: Mobile-specific tweaks */
+@media (max-width: 768px) {
+    /* Fix 3: Champion Banner Overflow */
+    .champion-banner {
+        padding: 20px !important; /* reduce padding */
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .champion-content {
+        gap: 16px !important; /* reduce gap between avatar and text */
+        width: 100%;
+    }
+    
+    .champion-avatar-container {
+        width: 80px !important; /* shrink avatar slightly */
+        height: 80px !important;
+        flex-shrink: 0;
+    }
+    
+    .champion-info {
+        min-width: 0; /* allow flex items to shrink below their content size */
+        flex-grow: 1;
+    }
+    
+    .champion-info h2 {
+        font-size: 26px !important; /* smaller font */
+        margin-bottom: 10px !important;
+        word-wrap: break-word;
+        hyphens: auto;
+    }
+    
+    .champion-stats {
+        gap: 12px !important; /* reduce gap between stats */
+        flex-wrap: wrap; /* allow wrapping if it still overflows */
+    }
+    
+    .champion-stats .value {
+        font-size: 16px !important; /* smaller stat values */
+    }
+    
+    /* Fix 1: Compact Activity Feed on Home Page */
+    #feed-section #global-feed-list {
+        max-height: 400px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+        overscroll-behavior-y: contain; /* prevent scrolling the whole page when reaching the end */
+        padding-right: 8px; /* space for scrollbar */
+        padding-bottom: 10px;
+    }
+    
+    /* Custom scrollbar for the feed container for a cleaner look */
+    #feed-section #global-feed-list::-webkit-scrollbar {
+        width: 4px;
+    }
+    #feed-section #global-feed-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    #feed-section #global-feed-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    
+    /* Ensure filters don't overflow */
+    .feed-filters-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .feed-filters-bar select {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 120px;
+    }
+    
+    /* Extra padding for charts to prevent overflow */
+    .profile-chart-card canvas {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+}
+
+
+/* ==========================================================================
+   MOBILE UI FIXES: DASHBOARD HEADER & TIME FILTERS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 16px;
+        margin-bottom: 24px;
+        width: 100%;
+        overflow: hidden; /* Prevent horizontal overflow */
+    }
+    
+    .dashboard-header .title-area {
+        width: 100%;
+    }
+    
+    .dashboard-header .time-filters {
+        width: 100%;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px; /* Room for scrollbar */
+        gap: 8px !important;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE and Edge */
+    }
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .dashboard-header .time-filters::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .dashboard-header .time-filters .filter-btn {
+        flex: 0 0 auto !important; /* Prevent shrinking */
+        white-space: nowrap !important; /* Keep text on one line */
+        background-color: var(--bg-body, #f5f5f5) !important;
+        border: 1px solid var(--border-color, #e5e7eb) !important;
+        border-radius: 20px !important; /* Pill shape chip */
+        padding: 8px 16px !important;
+        font-size: 11px !important;
+        color: var(--text-secondary, #6b7280) !important;
+    }
+    
+    .dashboard-header .time-filters .filter-btn.active {
+        background-color: var(--color-orange, #e95420) !important;
+        border-color: var(--color-orange, #e95420) !important;
+        color: #ffffff !important;
+    }
+}

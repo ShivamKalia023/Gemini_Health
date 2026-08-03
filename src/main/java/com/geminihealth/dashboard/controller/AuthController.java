@@ -26,11 +26,12 @@ public class AuthController {
             Long id = Long.parseLong(athleteIdCookie);
             return athleteRepository.findById(id)
                     .map(athlete -> ResponseEntity.ok(Map.of(
-                            "status", athlete.getStatus().name(),
-                            "role", athlete.getRole().name()
+                            "status", athlete.getStatus() != null ? athlete.getStatus().name() : "PENDING",
+                            "role", athlete.getRole() != null ? athlete.getRole().name() : "USER"
                     )))
                     .orElse(ResponseEntity.status(404).body(Map.of("error", "Athlete not found")));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(400).body(Map.of("error", "Invalid ID"));
         }
     }
@@ -45,12 +46,13 @@ public class AuthController {
             return athleteRepository.findById(id)
                     .map(athlete -> ResponseEntity.ok(Map.of(
                             "id", athlete.getId(),
-                            "name", athlete.getName(),
-                            "role", athlete.getRole().name(),
+                            "name", athlete.getName() != null ? athlete.getName() : "Unknown",
+                            "role", athlete.getRole() != null ? athlete.getRole().name() : "USER",
                             "avatarUrl", athlete.getAvatarUrl() != null ? athlete.getAvatarUrl() : ""
                     )))
                     .orElse(ResponseEntity.status(404).body(Map.of("error", "Athlete not found")));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(400).body(Map.of("error", "Invalid ID"));
         }
     }

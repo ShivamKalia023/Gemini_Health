@@ -17,6 +17,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Auth check failed", e);
     }
 
+    // Initialize AI Assistant for all users (will handle unauthenticated state internally)
+    const script = document.createElement('script');
+    script.src = '/js/chat-widget.js';
+    script.onload = () => {
+        if (window.FitnessChatWidget) {
+            window.aiAssistant = new window.FitnessChatWidget();
+        }
+    };
+    document.head.appendChild(script);
+
     // Init charts safely
     if (typeof initPerformanceChart === 'function') {
         performanceChart = initPerformanceChart('performanceChart');
@@ -1048,9 +1058,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
+            e.currentTarget.classList.add('active');
             
-            const filterText = e.target.textContent.trim().toUpperCase();
+            const filterText = e.currentTarget.textContent.trim().toUpperCase();
             if (filterText === 'TODAY') window.dashboardTimeFilter = 'today';
             else if (filterText === 'THIS WEEK') window.dashboardTimeFilter = 'week';
             else if (filterText === 'THIS MONTH') window.dashboardTimeFilter = 'month';

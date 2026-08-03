@@ -14,7 +14,7 @@ public class Comment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
-    @JsonIgnoreProperties({"athlete", "activity", "caption", "createdAt"})
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Post post;
 
     @ManyToOne(fetch = FetchType.EAGER)

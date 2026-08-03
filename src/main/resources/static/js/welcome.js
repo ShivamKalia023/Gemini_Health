@@ -26,4 +26,14 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/api/athletes/strava/login';
         });
     }
+
+    // Initialize AI Assistant for all users (will handle unauthenticated state internally)
+    const script = document.createElement('script');
+    script.src = '/js/chat-widget.js';
+    script.onload = () => {
+        if (window.FitnessChatWidget) {
+            window.aiAssistant = new window.FitnessChatWidget();
+        }
+    };
+    document.head.appendChild(script);
 });

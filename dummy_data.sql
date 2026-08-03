@@ -22,5 +22,25 @@ SELECT
 FROM inserted_athletes WHERE name = 'Bhavya'
 UNION ALL
 SELECT 
+    'act_b2_' || id, id, 'Morning 10K Run', 'Run', NOW() - INTERVAL '5 days', 10.0, 3000, 3100, 80.0 
+FROM inserted_athletes WHERE name = 'Bhavya'
+UNION ALL
+SELECT 
+    'act_b3_' || id, id, 'Recovery Run', 'Run', NOW() - INTERVAL '6 days', 3.0, 1000, 1050, 20.0 
+FROM inserted_athletes WHERE name = 'Bhavya'
+UNION ALL
+SELECT 
     'act_t1_' || id, id, 'Lake Swim', 'Swim', NOW() - INTERVAL '4 days', 1.5, 1200, 1200, 0.0 
+FROM inserted_athletes WHERE name = 'Test User'
+UNION ALL
+SELECT 
+    'act_t2_' || id, id, 'Evening 5K Run', 'Run', NOW() - INTERVAL '3 days', 5.0, 1450, 1500, 40.0 
+FROM inserted_athletes WHERE name = 'Test User'
+UNION ALL
+SELECT 
+    'act_t3_' || id, id, 'Track Intervals', 'Run', NOW() - INTERVAL '7 days', 7.5, 2100, 2200, 15.0 
+FROM inserted_athletes WHERE name = 'Test User'
+UNION ALL
+SELECT 
+    'act_t4_' || id, id, 'Long Ride', 'Ride', NOW() - INTERVAL '8 days', 40.0, 7200, 7500, 350.0 
 FROM inserted_athletes WHERE name = 'Test User';

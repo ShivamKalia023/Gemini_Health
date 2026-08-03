@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         list.innerHTML = '<div style="font-size:12px; color:#94a3b8; text-align:center;">No comments yet.</div>';
                     } else {
                         comments.forEach(c => {
-                            list.appendChild(createCommentElement(c));
+                            list.appendChild(createCommentElement(c, postId));
                         });
                     }
                 }
@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (list.innerHTML.includes('No comments yet.')) {
                     list.innerHTML = '';
                 }
-                list.appendChild(createCommentElement(comment));
+                list.appendChild(createCommentElement(comment, postId));
                 
                 // Update comment count
                 const countSpan = document.getElementById(`comment-count-${postId}`);
@@ -451,22 +451,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    function createCommentElement(comment) {
+    function createCommentElement(comment, postId) {
         const el = document.createElement('div');
         el.className = 'comment-item';
         el.id = `comment-${comment.id}`;
         
-        const isOwner = comment.athlete.id == currentAthleteId;
+        const isOwner = comment.athlete && comment.athlete.id == currentAthleteId;
         const canDelete = isOwner || currentUserIsAdmin;
-        const name = comment.athlete.name || 'Unknown User';
-        const avatarUrl = comment.athlete.avatarUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name);
+        const name = comment.athlete ? comment.athlete.name : 'Unknown User';
+        const avatarUrl = comment.athlete && comment.athlete.avatarUrl ? comment.athlete.avatarUrl : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name);
 
         el.innerHTML = `
             <img src="${avatarUrl}" class="comment-avatar" alt="Avatar">
             <div class="comment-content">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span class="comment-author">${name}</span>
-                    ${canDelete ? `<button style="background:none; border:none; color:#ef4444; font-size:11px; cursor:pointer;" data-action="delete-comment" data-comment-id="${comment.id}" data-post-id="${comment.post.id || comment.post}">Delete</button>` : ''}
+                    ${canDelete ? `<button style="background:none; border:none; color:#ef4444; font-size:11px; cursor:pointer;" data-action="delete-comment" data-comment-id="${comment.id}" data-post-id="${postId}">Delete</button>` : ''}
                 </div>
                 <div class="comment-text">${escapeHtml(comment.content)}</div>
             </div>

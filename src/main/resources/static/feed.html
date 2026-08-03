@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="js/navbar.js"></script>
     <script src="/js/csrf.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 
@@ -37,6 +38,12 @@
             <div id="feed-posts-container">
                 <div class="loading-spinner">Loading feed...</div>
             </div>
+        
+    <!-- Floating Action Button for Mobile -->
+    <button class="fab-create-post" id="fab-create-post" onclick="window.scrollTo({top:0, behavior:'smooth'}); document.getElementById('post-caption-input').focus();">
+        <i data-lucide="plus"></i>
+    </button>
+
         </main>
     </div>
 
@@ -55,7 +62,7 @@
         </div>
     </div>
     
-    <script src="js/app.js?v=1.0.9"></script>
+    <script src="js/app.js?v=1.0.16"></script>
     <script src="js/feed.js?v=1.0.0"></script>
 </body>
 </html>
