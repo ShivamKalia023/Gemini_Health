@@ -1,3 +1,11 @@
+// Init theme before DOM loads to prevent flash
+(function() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark-theme');
+    }
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Inject HTML
     const currentPath = window.location.pathname.split('/').pop() || 'home.html';
@@ -21,9 +29,32 @@ document.addEventListener('DOMContentLoaded', () => {
         </nav>
         <div class="nav-right-container" style="display: flex; align-items: center; gap: 16px;">
             <div id="last-updated-ticker" style="font-size: 12px; color: #94a3b8; font-weight: 500;" class="last-updated-text hidden-mobile"></div>
+            <button id="theme-toggle" style="background: none; border: none; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; transition: background-color 0.2s;" title="Toggle Dark Mode"></button>
             <div class="nav-actions"></div>
         </div>
+        </div>
         `;
+    }
+
+    // Setup Theme Toggle Button
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    if (themeToggleBtn) {
+        const isDark = document.documentElement.classList.contains('dark-theme');
+        themeToggleBtn.textContent = isDark ? '☀️' : '🌙';
+        
+        themeToggleBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark-theme');
+            const currentlyDark = document.documentElement.classList.contains('dark-theme');
+            localStorage.setItem('theme', currentlyDark ? 'dark' : 'light');
+            themeToggleBtn.textContent = currentlyDark ? '☀️' : '🌙';
+        });
+        
+        themeToggleBtn.addEventListener('mouseenter', () => {
+            themeToggleBtn.style.backgroundColor = 'rgba(148, 163, 184, 0.1)';
+        });
+        themeToggleBtn.addEventListener('mouseleave', () => {
+            themeToggleBtn.style.backgroundColor = 'transparent';
+        });
     }
 
     // Inject bottom-nav

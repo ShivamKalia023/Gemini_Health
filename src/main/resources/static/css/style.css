@@ -18,6 +18,15 @@
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+html.dark-theme, body.dark-theme, .dark-theme {
+    --bg-body: #121212;
+    --bg-card: #1e1e1e;
+    --bg-sidebar: #181818;
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --border-color: #374151;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -2495,4 +2504,29 @@ body, html {
         border-color: var(--color-orange, #e95420) !important;
         color: #ffffff !important;
     }
+    }
+}
+
+/* Dark Theme Overrides */
+html.dark-theme input[type="text"], 
+html.dark-theme select,
+html.dark-theme textarea {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+html.dark-theme .file-upload-label {
+    background-color: var(--bg-body);
+}
+html.dark-theme .badge, 
+html.dark-theme .activities-table th,
+html.dark-theme .activities-table tbody tr:hover {
+    background-color: var(--border-color);
+    color: var(--text-primary);
+}
+html.dark-theme .profile-item:hover,
+html.dark-theme .leaderboard-item {
+    background-color: var(--bg-body);
+}
+html.dark-theme .profile-item.active {
+    background-color: rgba(233, 84, 32, 0.15);
 }
