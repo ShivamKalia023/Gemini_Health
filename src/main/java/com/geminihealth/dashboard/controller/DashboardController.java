@@ -114,6 +114,133 @@ public class DashboardController {
         return ResponseEntity.ok(leaderboard);
     }
 
+    
+    @GetMapping("/champs")
+    public ResponseEntity<List<Map<String, Object>>> getChamps() {
+        List<AthleteProfile> athletes = athleteRepository.findAll();
+        List<Activity> allActivities = activityRepository.findAll();
+        
+        // This week's start date
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneOffset.UTC);
+        LocalDateTime thisWeekStart = LocalDateTime.of(now.toLocalDate().with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)), LocalTime.MIN);
+
+        AthleteProfile mostDistanceAthlete = null;
+        double maxWeeklyDistance = 0;
+
+        AthleteProfile mostActiveAthlete = null;
+        int maxWeeklyActivities = 0;
+
+        AthleteProfile cyclingChamp = null;
+        double maxCyclingDistance = 0;
+
+        AthleteProfile walkingChamp = null;
+        double maxWalkingDistance = 0;
+
+        AthleteProfile hikingChamp = null;
+        double maxHikingDistance = 0;
+
+        AthleteProfile longestRunAthlete = null;
+        double maxRunDistance = 0;
+
+        AthleteProfile longestRideAthlete = null;
+        double maxRideDistance = 0;
+
+        for (AthleteProfile athlete : athletes) {
+            double weeklyDistance = 0;
+            int weeklyActivities = 0;
+            double cyclingDistance = 0;
+            double walkingDistance = 0;
+            double hikingDistance = 0;
+
+            for (Activity act : allActivities) {
+                if (act.getAthlete() != null && act.getAthlete().getId().equals(athlete.getId())) {
+                    boolean isThisWeek = act.getStartDate() != null && act.getStartDate().isAfter(thisWeekStart);
+                    String type = act.getType() != null ? act.getType().toLowerCase() : "";
+                    double dist = act.getDistance() != null ? act.getDistance() : 0.0;
+
+                    if (isThisWeek) {
+                        weeklyActivities++;
+                        weeklyDistance += dist;
+                    }
+
+                    if (type.contains("ride") || type.contains("biking") || type.contains("cycling")) {
+                        cyclingDistance += dist;
+                        if (dist > maxRideDistance) {
+                            maxRideDistance = dist;
+                            longestRideAthlete = athlete;
+                        }
+                    } else if (type.contains("walk")) {
+                        walkingDistance += dist;
+                    } else if (type.contains("hike")) {
+                        hikingDistance += dist;
+                    } else if (type.contains("run")) {
+                        if (dist > maxRunDistance) {
+                            maxRunDistance = dist;
+                            longestRunAthlete = athlete;
+                        }
+                    }
+                }
+            }
+
+            if (weeklyDistance > maxWeeklyDistance) {
+                maxWeeklyDistance = weeklyDistance;
+                mostDistanceAthlete = athlete;
+            }
+            if (weeklyActivities > maxWeeklyActivities) {
+                maxWeeklyActivities = weeklyActivities;
+                mostActiveAthlete = athlete;
+            }
+            if (cyclingDistance > maxCyclingDistance) {
+                maxCyclingDistance = cyclingDistance;
+                cyclingChamp = athlete;
+            }
+            if (walkingDistance > maxWalkingDistance) {
+                maxWalkingDistance = walkingDistance;
+                walkingChamp = athlete;
+            }
+            if (hikingDistance > maxHikingDistance) {
+                maxHikingDistance = hikingDistance;
+                hikingChamp = athlete;
+            }
+        }
+
+        List<Map<String, Object>> champs = new ArrayList<>();
+
+        if (mostDistanceAthlete != null && maxWeeklyDistance > 0) {
+            champs.add(createChampEntry(mostDistanceAthlete, "Most Distance This Week", String.format("%.1f km", maxWeeklyDistance), "🏃", "🥇"));
+        }
+        if (mostActiveAthlete != null && maxWeeklyActivities > 0) {
+            champs.add(createChampEntry(mostActiveAthlete, "Most Active Athlete", maxWeeklyActivities + " activities", "🔥", "🥇"));
+        }
+        if (cyclingChamp != null && maxCyclingDistance > 0) {
+            champs.add(createChampEntry(cyclingChamp, "Cycling Champion", String.format("%.1f km", maxCyclingDistance), "🚴", "🏅"));
+        }
+        if (walkingChamp != null && maxWalkingDistance > 0) {
+            champs.add(createChampEntry(walkingChamp, "Walking Champion", String.format("%.1f km", maxWalkingDistance), "🚶", "🏅"));
+        }
+        if (hikingChamp != null && maxHikingDistance > 0) {
+            champs.add(createChampEntry(hikingChamp, "Hiking Champion", String.format("%.1f km", maxHikingDistance), "🥾", "🏅"));
+        }
+        if (longestRunAthlete != null && maxRunDistance > 0) {
+            champs.add(createChampEntry(longestRunAthlete, "Longest Single Run", String.format("%.1f km", maxRunDistance), "🏃", "⭐"));
+        }
+        if (longestRideAthlete != null && maxRideDistance > 0) {
+            champs.add(createChampEntry(longestRideAthlete, "Longest Ride", String.format("%.1f km", maxRideDistance), "🚴", "⭐"));
+        }
+
+        return ResponseEntity.ok(champs);
+    }
+
+    private Map<String, Object> createChampEntry(AthleteProfile athlete, String title, String metric, String icon, String badge) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("athlete", athlete);
+        map.put("title", title);
+        map.put("metric", metric);
+        map.put("icon", icon);
+        map.put("badge", badge);
+        return map;
+    }
+
     @GetMapping("/challenges")
     public ResponseEntity<List<Challenge>> getChallenges() {
         return ResponseEntity.ok(challengeRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")));
@@ -158,3 +285,4 @@ public class DashboardController {
         return ResponseEntity.ok(response);
     }
 }
+

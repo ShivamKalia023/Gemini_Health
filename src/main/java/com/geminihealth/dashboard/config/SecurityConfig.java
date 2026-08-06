@@ -92,7 +92,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(authz -> authz
             .requestMatchers("/", "/welcome.html", "/waiting.html", "/favicon.ico", "/css/**", "/js/**", "/images/**", "/webjars/**", "/api/athletes/strava/**", "/api/auth/**").permitAll()
             .requestMatchers("/admin.html", "/api/admin/**").hasRole("ADMIN")
-            .requestMatchers("/dashboard.html", "/feed.html", "/profile.html", "/leaderboard.html", "/challenges.html", "/activity.html").hasAnyRole("USER", "ADMIN")
+            .requestMatchers("/feed.html", "/profile.html", "/leaderboard.html", "/challenges.html", "/activity.html").hasAnyRole("USER", "ADMIN")
             .anyRequest().authenticated()
         );
 

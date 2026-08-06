@@ -1054,30 +1054,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Handle time filters
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            e.currentTarget.classList.add('active');
-            
-            const filterText = e.currentTarget.textContent.trim().toUpperCase();
-            if (filterText === 'TODAY') window.dashboardTimeFilter = 'today';
-            else if (filterText === 'THIS WEEK') window.dashboardTimeFilter = 'week';
-            else if (filterText === 'THIS MONTH') window.dashboardTimeFilter = 'month';
-            else if (filterText === 'THIS YEAR') window.dashboardTimeFilter = 'year';
-            else window.dashboardTimeFilter = 'all';
-            
-            if (document.getElementById('global-feed-list')) {
-                document.getElementById('global-feed-list').innerHTML = '<div class="loading-text">Loading feed...</div>';
-                if (typeof loadGlobalFeed === 'function') loadGlobalFeed();
-            }
-            if (document.getElementById('leaderboard-list')) {
-                document.getElementById('leaderboard-list').innerHTML = '<tr><td colspan="4" class="loading-text">Loading leaderboard...</td></tr>';
-                if (typeof loadLeaderboard === 'function') loadLeaderboard();
-            }
-        });
-    });
-
     // Startup
     const currentPath = window.location.pathname;
     if (currentPath.includes('profile.html')) {
@@ -1095,12 +1071,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (typeof loadLeaderboard === 'function') loadLeaderboard();
     } else if (currentPath.includes('challenges.html')) {
         if (typeof loadChallenges === 'function') loadChallenges();
-    } else if (currentPath.includes('dashboard.html')) {
-        if (typeof loadGlobalFeed === 'function') loadGlobalFeed();
+    
     } else {
         // Default (index.html or /)
         if (typeof loadLeaderboard === 'function') loadLeaderboard();
         if (typeof loadGlobalFeed === 'function') loadGlobalFeed();
+        if (typeof loadChamps === 'function') loadChamps();
+        if (typeof loadChallengesPreview === 'function') loadChallengesPreview();
     }
     
     // Update ticker unconditionally since it's now in the global navbar
@@ -1296,8 +1273,8 @@ function initFilters() {
     window.filtersInitialized = true;
 
     // Global Feed Listeners
-    const dbType = document.getElementById('dashboard-feed-type') || document.getElementById('home-feed-type');
-    const dbSort = document.getElementById('dashboard-feed-sort') || document.getElementById('home-feed-sort');
+    const dbType = document.document.getElementById('home-feed-type');
+    const dbSort = document.document.getElementById('home-feed-sort');
 
     const updateGlobalFeed = () => {
         if (dbType) window.globalFilterType = dbType.value;
@@ -1326,3 +1303,262 @@ function initFilters() {
 initFilters();
 // Also wait for DOMContentLoaded to guarantee execution
 document.addEventListener('DOMContentLoaded', initFilters);
+
+// ===== Champs Preview Logic =====
+async function loadChamps() {
+    const champsContainer = document.getElementById('champs-cards-container');
+    if (!champsContainer) return;
+
+    try {
+        const res = await fetch('/api/dashboard/champs');
+        
+        if (!res.ok) {
+            throw new Error('Failed to load champs');
+        }
+
+        const champsData = await res.json();
+        champsContainer.innerHTML = '';
+
+        if (!champsData || champsData.length === 0) {
+            champsContainer.innerHTML = '<div class="champs-empty-state">No champion statistics available yet.</div>';
+            return;
+        }
+
+        champsData.forEach(champ => {
+            const avatar = champ.athlete && champ.athlete.avatarUrl ? champ.athlete.avatarUrl : '';
+            const name = champ.athlete && champ.athlete.name ? champ.athlete.name : 'Unknown';
+            const athleteId = champ.athlete && champ.athlete.id ? champ.athlete.id : '';
+
+            const card = document.createElement('div');
+            card.className = 'champ-card';
+            card.onclick = () => {
+                if (athleteId) window.location.href = '/profile.html?id=' + athleteId;
+            };
+
+            card.innerHTML = `
+                <img src="${avatar}" class="champ-avatar" alt="${name}" onerror="this.src=''; this.style.backgroundColor='#333';">
+                <div class="champ-info">
+                    <div class="champ-title-badge">
+                        <span>${champ.badge || ''}</span>
+                        <span>${champ.title || ''}</span>
+                    </div>
+                    <div class="champ-name" title="${name}">${name}</div>
+                    <div class="champ-metric">${champ.icon || ''} ${champ.metric || ''}</div>
+                </div>
+            `;
+
+            champsContainer.appendChild(card);
+        });
+
+    } catch(e) {
+        console.error('Failed to load champs preview', e);
+        champsContainer.innerHTML = '<div class="champs-empty-state">Failed to load champions.</div>';
+    }
+}
+
+// ===== Challenges Preview Logic =====
+async function loadChallengesPreview() {
+    const previewList = document.getElementById('challenges-preview-list');
+    if (!previewList) return;
+
+    const formatDt = (dateString) => {
+        if (!dateString) return '--';
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return '--';
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const day = d.getDate();
+        const month = months[d.getMonth()];
+        const year = d.getFullYear();
+        return `${day} ${month} ${year}`;
+    };
+    
+    const calculateTimeRemaining = (dateString, isUpcoming, isCompleted) => {
+        if (isCompleted) return 'Challenge Finished';
+        if (!dateString) return '';
+        const d = new Date(dateString);
+        const now = new Date();
+        const diff = d - now;
+        if (diff <= 0) return '';
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        
+        if (days > 0) {
+            return isUpcoming ? `Starts in ${days} days` : `Ends in ${days} days`;
+        } else {
+            return isUpcoming ? `Starts in ${hours} hours` : `Ends in ${hours} hours`;
+        }
+    };
+    
+    const getFallbackStyle = (activityType) => {
+        const type = activityType ? activityType.toLowerCase() : '';
+        if (type.includes('run')) return { bg: 'linear-gradient(135deg, #2563eb, #3b82f6)', icon: '🏃‍♂️' };
+        if (type.includes('cycl') || type.includes('bike')) return { bg: 'linear-gradient(135deg, #16a34a, #22c55e)', icon: '🚴‍♂️' };
+        if (type.includes('walk')) return { bg: 'linear-gradient(135deg, #ea580c, #f97316)', icon: '🚶‍♂️' };
+        if (type.includes('hik')) return { bg: 'linear-gradient(135deg, #854d0e, #a16207)', icon: '🥾' };
+        if (type.includes('swim')) return { bg: 'linear-gradient(135deg, #0d9488, #14b8a6)', icon: '🏊‍♂️' };
+        return { bg: 'linear-gradient(135deg, #4f46e5, #6366f1)', icon: '🏆' };
+    };
+
+    try {
+        const [activeRes, upcomingRes] = await Promise.all([
+            fetch('/api/challenges/active'),
+            fetch('/api/challenges/upcoming')
+        ]);
+        
+        let activeData = activeRes.ok ? await activeRes.json() : [];
+        let upcomingData = upcomingRes.ok ? await upcomingRes.json() : [];
+        
+        // Sorting
+        activeData.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+        upcomingData.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+        
+        const combined = [...activeData, ...upcomingData];
+        
+        previewList.innerHTML = '';
+        
+        if (activeData.length === 0 && upcomingData.length === 0) {
+            previewList.innerHTML = `
+                <div class="challenge-empty-state">
+                    <i data-lucide="target" style="width:48px;height:48px;color:#cbd5e1;margin-bottom:12px;"></i>
+                    <h4>No Challenges Right Now</h4>
+                    <p>There are no active or upcoming challenges.</p>
+                    <a href="challenges.html" class="btn btn-primary" style="margin-top:12px;">View Challenge History</a>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        if (activeData.length === 0) {
+            const noActiveMsg = document.createElement('div');
+            noActiveMsg.className = 'challenge-empty-state-mini';
+            noActiveMsg.innerText = 'No Active Challenges at the moment.';
+            previewList.appendChild(noActiveMsg);
+        }
+
+        combined.slice(0, 4).forEach(c => {
+            const now = new Date();
+            const startDt = new Date(c.startDate);
+            const endDt = new Date(c.endDate);
+            
+            const isCompleted = now > endDt;
+            const isActive = now >= startDt && now <= endDt;
+            const isUpcoming = now < startDt;
+            
+            let statusClass = '';
+            let statusText = '';
+            if (isCompleted) {
+                statusClass = 'status-ended';
+                statusText = 'ENDED';
+            } else if (isActive) {
+                statusClass = 'status-active';
+                statusText = 'ACTIVE';
+            } else {
+                statusClass = 'status-upcoming';
+                statusText = 'UPCOMING';
+            }
+            
+            const fallback = getFallbackStyle(c.activityType);
+            const bannerHtml = c.bannerImage 
+                ? `<img src="${c.bannerImage}" alt="${c.title}" class="challenge-card-img">`
+                : `<div class="challenge-card-fallback" style="background: ${fallback.bg}">
+                     <span class="fallback-icon">${fallback.icon}</span>
+                     <span class="fallback-type">${(c.activityType || 'Challenge').toUpperCase()}</span>
+                   </div>`;
+                   
+            const participantsCount = c.participants ? c.participants.length : (c.participantCount || 0);
+            const timeRemaining = calculateTimeRemaining(isActive || isCompleted ? c.endDate : c.startDate, isUpcoming, isCompleted);
+            
+            // Registration CTA Logic
+            let isRegOpeningSoon = false;
+            let isRegOpen = false;
+            let isRegClosed = false;
+            
+            if (isUpcoming) {
+                if (c.registrationStartDate && now < new Date(c.registrationStartDate)) {
+                    isRegOpeningSoon = true;
+                } else if (c.registrationEndDate && now > new Date(c.registrationEndDate)) {
+                    isRegClosed = true;
+                } else {
+                    isRegOpen = true;
+                }
+            }
+            
+            let ctaText = 'View Challenge';
+            let ctaClass = 'btn-primary';
+            let ctaDisabled = false;
+            
+            if (isCompleted) {
+                ctaText = 'Challenge Ended';
+                ctaClass = 'btn-disabled';
+                ctaDisabled = true;
+            } else if (isActive) {
+                ctaText = 'View Challenge';
+                ctaClass = 'btn-success';
+            } else if (isUpcoming) {
+                if (isRegOpeningSoon) {
+                    ctaText = 'Registration Opening Soon';
+                    ctaClass = 'btn-disabled-blue';
+                    ctaDisabled = true;
+                } else if (isRegClosed) {
+                    ctaText = 'Registration Closed';
+                    ctaClass = 'btn-disabled';
+                    ctaDisabled = true;
+                } else {
+                    ctaText = 'Register';
+                    ctaClass = 'btn-primary';
+                }
+            }
+
+            const ctaHtml = ctaDisabled 
+                ? `<button class="btn ${ctaClass} btn-sm challenge-cta" disabled>${ctaText}</button>`
+                : `<button class="btn ${ctaClass} btn-sm challenge-cta">${ctaText}</button>`;
+            
+            // Render Horizontal Card
+            const el = document.createElement('div');
+            el.className = 'challenge-preview-card';
+            el.onclick = () => window.location.href = 'challenges.html?challengeId=' + c.id;
+
+            el.innerHTML = `
+                <div class="challenge-card-banner">
+                    ${bannerHtml}
+                    <div class="challenge-card-badge ${statusClass}">${statusText}</div>
+                </div>
+                <div class="challenge-card-content">
+                    <div class="challenge-card-header">
+                        <h4 class="challenge-card-title">${c.title}</h4>
+                        <p class="challenge-card-desc">${c.description || 'Join this exciting challenge and achieve your fitness goals!'}</p>
+                    </div>
+                    
+                    <div class="challenge-card-meta">
+                        <div class="meta-item"><i data-lucide="calendar"></i> <span>${formatDt(c.startDate)} - ${formatDt(c.endDate)}</span></div>
+                        <div class="meta-item"><i data-lucide="activity"></i> <span>Category: ${c.activityType || 'Any'}</span></div>
+                        <div class="meta-item"><i data-lucide="target"></i> <span>Goal: ${c.targetValue} ${c.unit}</span></div>
+                        <div class="meta-item"><i data-lucide="users"></i> <span>${participantsCount} Participant${participantsCount === 1 ? '' : 's'}</span></div>
+                    </div>
+                    
+                    <div class="challenge-card-footer">
+                        <div class="challenge-time-info">
+                            <i data-lucide="clock"></i>
+                            <span class="${isActive ? 'text-urgent' : (isCompleted ? 'text-secondary' : 'text-upcoming')}">${timeRemaining || 'Closing soon'}</span>
+                        </div>
+                        ${ctaHtml}
+                    </div>
+                </div>
+            `;
+            previewList.appendChild(el);
+        });
+        
+        if (window.lucide) lucide.createIcons();
+        
+    } catch (e) {
+        console.error('Failed to load challenges preview', e);
+        previewList.innerHTML = `
+            <div class="challenge-empty-state">
+                <i data-lucide="alert-circle" style="color:#ef4444;width:32px;height:32px;margin-bottom:12px;"></i>
+                <p style="color:#ef4444;">Error loading challenges.</p>
+            </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+    }
+}

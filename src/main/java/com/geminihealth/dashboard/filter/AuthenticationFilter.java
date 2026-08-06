@@ -22,7 +22,7 @@ public class AuthenticationFilter implements Filter {
 
     private static final List<String> PROTECTED_PAGES = Arrays.asList(
             "/home.html",
-            "/dashboard.html",
+            
             "/leaderboard.html",
             "/challenges.html",
             "/profile.html",

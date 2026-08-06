@@ -24,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <a href="home.html" class="nav-link ${currentPath === 'home.html' ? 'active' : ''}">Home</a>
             <a href="feed.html" class="nav-link ${currentPath === 'feed.html' ? 'active' : ''}">Feed</a>
             <a href="challenges.html" class="nav-link ${currentPath === 'challenges.html' ? 'active' : ''}">Challenges</a>
-            <a href="dashboard.html" class="nav-link ${currentPath === 'dashboard.html' ? 'active' : ''}">Dashboard</a>
             <a href="leaderboard.html" class="nav-link ${currentPath === 'leaderboard.html' ? 'active' : ''}">Leaderboards</a>
         </nav>
         <div class="nav-right-container" style="display: flex; align-items: center; gap: 16px;">
@@ -73,10 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <a href="challenges.html" class="bnav-link ${currentPath === 'challenges.html' ? 'active' : ''}">
                 <i data-lucide="target"></i>
                 <span>Challenges</span>
-            </a>
-            <a href="dashboard.html" class="bnav-link ${currentPath === 'dashboard.html' ? 'active' : ''}">
-                <i data-lucide="layout-dashboard"></i>
-                <span>Dashboard</span>
             </a>
             <a href="leaderboard.html" class="bnav-link ${currentPath === 'leaderboard.html' ? 'active' : ''}">
                 <i data-lucide="trophy"></i>

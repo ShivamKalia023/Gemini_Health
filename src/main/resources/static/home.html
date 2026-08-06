@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemini Fitness Group Tracker - Home</title>
-    <link rel="stylesheet" href="css/style.css?v=1.0.10">
+    <link rel="stylesheet" href="css/style.css?v=1.0.12">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/navbar.js"></script>
     <script src="/js/csrf.js"></script>
@@ -16,59 +16,38 @@
 
     <div class="app-container" style="justify-content: center; padding-top: 40px; display: flex;">
         <main class="dashboard-main" style="width: 100%; max-width: 1200px;">
-            <!-- Champion Banner -->
-            <div class="champion-banner hidden" id="champion-banner" style="margin-bottom: 40px;">
-                <div class="champion-content">
-                    <div class="champion-avatar-container">
-                        <img id="champion-avatar" src="" alt="Champion">
-                        <div class="medal-badge">🏆</div>
-                    </div>
-                    <div class="champion-info">
-                        <span class="champion-label">■ CHAMPION · ALL TIME</span>
-                        <h2 id="champion-name">--</h2>
-                        <div class="champion-stats">
-                            <div class="stat">
-                                <span class="label">DISTANCE</span>
-                                <span class="value" id="champion-dist">-- <span class="unit">km</span></span>
-                            </div>
-                            <div class="stat">
-                                <span class="label">ACTIVITIES</span>
-                                <span class="value" id="champion-acts">--</span>
-                            </div>
-                            <div class="stat">
-                                <span class="label">STREAK</span>
-                                <span class="value">0 <span class="unit">days</span></span>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Champs Section -->
+            <section id="champs-section" class="champs-section">
+                <div class="champs-header">
+                    <h2>🏆 Champs</h2>
+                    <p class="champs-subtitle">Celebrating this week's top performers</p>
                 </div>
-                <div class="champion-rank">1</div>
-            </div>
+                <div id="champs-cards-container" class="champs-cards-container">
+                    <!-- Skeleton loaders -->
+                    <div class="champ-card skeleton"></div>
+                    <div class="champ-card skeleton"></div>
+                    <div class="champ-card skeleton"></div>
+                    <div class="champ-card skeleton"></div>
+                </div>
+            </section>
 
             <!-- Two Column Layout -->
             <div class="dashboard-columns">
-                <!-- Left Column: Leaderboard -->
-                <section class="leaderboard-section" id="leaderboard-section">
+                <!-- Left Column: Challenges Preview -->
+                <section class="leaderboard-section challenges-preview" id="challenges-preview-section">
                     <div class="section-header">
                         <div>
-                            <h3>Leaderboard</h3>
-                            <span class="section-subtitle">TOP PERFORMERS · ALL TIME</span>
+                            <h3>Challenges</h3>
+                            <span class="section-subtitle">ACTIVE & UPCOMING</span>
                         </div>
-                        <a href="leaderboard.html" class="view-all">VIEW ALL &rarr;</a>
+                        <a href="challenges.html" class="view-all">VIEW ALL &rarr;</a>
                     </div>
-                    <table class="leaderboard-table">
-                        <thead>
-                            <tr>
-                                <th>RANK</th>
-                                <th>ATHLETE</th>
-                                <th style="text-align: right;">ACTIVITIES</th>
-                                <th style="text-align: right;">LAST RUN DISTANCE</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboard-list">
-                            <tr><td colspan="4" class="loading-text">Loading leaderboard...</td></tr>
-                        </tbody>
-                    </table>
+                    <div id="challenges-preview-list" class="challenges-preview-list">
+                        <!-- Skeleton loader shown by default -->
+                        <div class="challenge-skeleton"></div>
+                        <div class="challenge-skeleton"></div>
+                        <div class="challenge-skeleton"></div>
+                    </div>
                 </section>
 
                 <!-- Right Column: Activity Feed -->
@@ -78,7 +57,7 @@
                             <h3>Activity Feed</h3>
                             <span class="section-subtitle">LIVE UPDATES</span>
                         </div>
-                        <a href="dashboard.html" class="view-all">VIEW ALL &rarr;</a>
+                        <a href="feed.html" class="view-all">VIEW ALL &rarr;</a>
                     </div>
                     <div class="feed-filters-bar">
                         <select id="home-feed-type" class="feed-select" title="Activity Type">
@@ -113,6 +92,7 @@
     </div>
     
     <script src="js/charts.js?v=1.0.1"></script>
-    <script src="js/app.js?v=1.0.16"></script>
+    <script src="js/app.js?v=1.0.19"></script>
 </body>
 </html>
+
