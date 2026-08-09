@@ -12,6 +12,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const activityListContainer = document.getElementById('activity-list-container');
     const selectedActivityPreview = document.getElementById('selected-activity-preview');
 
+    // Image Upload Elements
+    const addImageBtn = document.getElementById('add-image-btn');
+    const imageUploadInput = document.getElementById('image-upload-input');
+    const imagePreviewContainer = document.getElementById('image-upload-preview-container');
+    const imagePreview = document.getElementById('image-upload-preview');
+    const removeImageBtn = document.getElementById('remove-image-btn');
+    
+    // Image Viewer Modal
+    const imageViewerModal = document.getElementById('image-viewer-modal');
+    const fullSizeImage = document.getElementById('full-size-image');
+    const closeImageViewerBtn = document.getElementById('close-image-viewer');
+    
+    let selectedImageFile = null;
+
     let currentAthleteId = null;
     let selectedActivityId = null;
     let currentPage = 0;
@@ -52,21 +66,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     submitBtn.addEventListener('click', async () => {
         const caption = captionInput.value.trim();
-        if (!caption && !selectedActivityId) return;
+        if (!caption && !selectedActivityId && !selectedImageFile) return;
 
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Posting...';
+        submitBtn.textContent = 'Uploading...';
 
         try {
+            const formData = new FormData();
+            formData.append('caption', caption);
+            if (selectedActivityId) {
+                formData.append('activityId', selectedActivityId);
+            }
+            if (selectedImageFile) {
+                formData.append('image', selectedImageFile);
+            }
+
             const response = await fetch('/api/feed', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    caption: caption,
-                    activityId: selectedActivityId
-                })
+                // FormData automatically sets the Content-Type header with the boundary
+                body: formData
             });
 
             if (response.ok) {
@@ -78,11 +96,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 openPickerBtn.innerHTML = '<span style="font-size: 16px;">+</span> Attach Activity';
                 openPickerBtn.classList.remove('selected');
                 
+                selectedImageFile = null;
+                imagePreviewContainer.style.display = 'none';
+                imagePreview.src = '';
+                imageUploadInput.value = '';
+                
                 // Prepend new post
                 const postElement = createPostElement(newPost);
                 postsContainer.insertBefore(postElement, postsContainer.firstChild);
             } else {
-                alert('Failed to create post');
+                const errorText = await response.text();
+                alert(errorText || 'Failed to create post');
             }
         } catch (error) {
             console.error('Error creating post:', error);
@@ -92,6 +116,51 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.textContent = 'Post';
         }
     });
+
+    // --- Image Upload Logic ---
+    if (addImageBtn) {
+        addImageBtn.addEventListener('click', () => {
+            imageUploadInput.click();
+        });
+    }
+
+    if (imageUploadInput) {
+        imageUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Client-side validation
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image exceeds the maximum allowed size of 5MB.');
+                imageUploadInput.value = '';
+                return;
+            }
+
+            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                alert('Unsupported image format. Allowed formats: JPG, PNG, WEBP.');
+                imageUploadInput.value = '';
+                return;
+            }
+
+            selectedImageFile = file;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                imagePreview.src = event.target.result;
+                imagePreviewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    if (removeImageBtn) {
+        removeImageBtn.addEventListener('click', () => {
+            selectedImageFile = null;
+            imageUploadInput.value = '';
+            imagePreviewContainer.style.display = 'none';
+            imagePreview.src = '';
+        });
+    }
 
     // --- Activity Picker Logic ---
 
@@ -283,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const captionHtml = post.caption ? `<div class="post-caption">${escapeHtml(post.caption)}</div>` : '';
+        const imageHtml = post.imagePath ? `<div class="post-image-container" style="margin-top: 12px; border-radius: 8px; overflow: hidden; background: #f1f5f9;"><img src="${post.imagePath}" alt="Post image" style="width: 100%; max-height: 400px; object-fit: cover; cursor: pointer; transition: transform 0.2s;" class="feed-post-image" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\\'padding:40px;text-align:center;color:#94a3b8;font-size:14px;\\'>Image unavailable</div>'"></div>` : '';
         const likeIconColor = post.likedByCurrentUser ? 'color: #ef4444;' : '';
 
         el.innerHTML = `
@@ -297,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${deleteBtnHtml}
             </div>
             ${captionHtml}
+            ${imageHtml}
             ${activityHtml}
             <div class="post-actions">
                 <button class="action-btn ${post.likedByCurrentUser ? 'liked' : ''}" id="like-btn-${post.id}" data-action="toggle-like" data-post-id="${post.id}" data-liked="${post.likedByCurrentUser}">
@@ -558,6 +629,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const postId = target.getAttribute('data-post-id');
             if (commentId && postId) window.deleteComment(commentId, postId);
             return;
+        }
+
+        // Image Viewer
+        if (target.matches('.feed-post-image')) {
+            fullSizeImage.src = target.src;
+            imageViewerModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            return;
+        }
+
+        // Close Image Viewer if clicked outside image or on close button
+        if (target.matches('.modal-overlay') || target.matches('#close-image-viewer')) {
+            if (imageViewerModal.style.display === 'flex') {
+                imageViewerModal.style.display = 'none';
+                fullSizeImage.src = '';
+                document.body.style.overflow = '';
+            }
+        }
+    });
+
+    // ESC key to close modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (imageViewerModal && imageViewerModal.style.display === 'flex') {
+                imageViewerModal.style.display = 'none';
+                fullSizeImage.src = '';
+                document.body.style.overflow = '';
+            }
         }
     });
 });

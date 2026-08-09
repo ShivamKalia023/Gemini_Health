@@ -24,7 +24,7 @@
                         <div class="medal-badge">🏆</div>
                     </div>
                     <div class="champion-info">
-                        <span class="champion-label">■ CHAMPION · ALL TIME</span>
+                        <span class="champion-label" id="champion-label">■ OVERALL CHAMPION</span>
                         <h2 id="champion-name">--</h2>
                         <div class="champion-stats">
                             <div class="stat">
@@ -47,10 +47,19 @@
 
             <!-- Leaderboard -->
             <section class="leaderboard-section" id="leaderboard-section" style="width: 100%; height: auto;">
-                <div class="section-header">
+                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div>
-                        <h3>Global Leaderboard</h3>
-                        <span class="section-subtitle">TOP PERFORMERS · ALL TIME</span>
+                        <h3 id="leaderboard-title">Global Leaderboard</h3>
+                        <span class="section-subtitle" id="leaderboard-subtitle">TOP PERFORMERS · ALL TIME</span>
+                    </div>
+                    <div class="category-filter">
+                        <select id="category-select" class="modern-select">
+                            <option value="RUN">🏃 Running</option>
+                            <option value="RIDE">🚴 Cycling</option>
+                            <option value="WALK">🚶 Walking</option>
+                            <option value="HIKE">🥾 Hiking</option>
+                            <option value="SWIM">🏊 Swimming</option>
+                        </select>
                     </div>
                 </div>
                 <div class="leaderboard-table-container">
@@ -59,8 +68,9 @@
                             <tr>
                                 <th>RANK</th>
                                 <th>ATHLETE</th>
-                                <th style="text-align: right;">ACTIVITIES</th>
-                                <th style="text-align: right;">LAST RUN DISTANCE</th>
+                                <th style="text-align: right;" id="col-distance">DISTANCE</th>
+                                <th style="text-align: right;" id="col-activities">ACTIVITIES</th>
+                                <th style="text-align: right;" id="col-average">AVERAGE DISTANCE</th>
                             </tr>
                         </thead>
                         <tbody id="leaderboard-list">

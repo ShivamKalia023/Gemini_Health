@@ -3220,3 +3220,46 @@ html.dark-theme .profile-item.active {
         min-height: 400px;
     }
 }
+
+/* Category Filter & Loading Skeletons */
+.modern-select {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.modern-select:hover {
+    border-color: var(--color-orange);
+}
+
+.modern-select:focus {
+    border-color: var(--color-orange);
+    box-shadow: 0 0 0 2px rgba(233, 84, 32, 0.2);
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    .category-filter {
+        width: 100%;
+        margin-top: 10px;
+    }
+    .modern-select {
+        width: 100%;
+    }
+}

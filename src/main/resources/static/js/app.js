@@ -375,59 +375,158 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    const leaderboardCache = {};
+
     async function loadLeaderboard() {
         if (!leaderboardList) return;
         const timeFilter = window.dashboardTimeFilter || 'all';
         
-        try {
-            const res = await fetch(`/api/dashboard/leaderboard?timeFilter=${timeFilter}`);
-            const data = await res.json();
-            
-            if (data.length === 0) {
-                leaderboardList.innerHTML = '<tr><td colspan="4" class="loading-text">No athletes found.</td></tr>';
-                return;
-            }
-            
-            // 1. Populate Champion Banner
-            const champ = data[0];
-            championAvatar.src = champ.athlete.avatarUrl || '';
-            championName.textContent = champ.athlete.name;
-            championDist.innerHTML = `${champ.lastRunDistance ? champ.lastRunDistance.toFixed(1) : '0.0'} <span class="unit">km</span>`;
-            championActs.textContent = champ.totalActivities || 0;
-            championBanner.classList.remove('hidden');
+        let categoryParam = new URLSearchParams(window.location.search).get('category');
+        
+        const validCategories = ['RUN', 'RIDE', 'WALK', 'HIKE', 'SWIM'];
+        if (!categoryParam || !validCategories.includes(categoryParam.toUpperCase()) || categoryParam.toUpperCase() === 'OVERALL') {
+            categoryParam = 'RUN';
+            const url = new URL(window.location);
+            url.searchParams.set('category', 'RUN');
+            window.history.replaceState({}, '', url);
+        }
 
-            // 2. Populate Leaderboard Table
-            leaderboardList.innerHTML = '';
-            data.forEach((entry, idx) => {
-                const rankNum = String(idx + 1).padStart(2, '0');
-                const isTop = idx === 0 ? 'top-rank' : '';
-                const dist = entry.lastRunDistance ? entry.lastRunDistance.toFixed(1) : '0.0';
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="rank-cell ${isTop}">${rankNum}</td>
-                    <td>
-                        <div class="athlete-cell">
-                            <img src="${entry.athlete.avatarUrl || ''}" alt="">
-                            <div class="athlete-cell-info">
-                                <span class="athlete-cell-name">${entry.athlete.name}</span>
-                                <span class="athlete-cell-status">Strava Connected · ${entry.athlete.city || 'Unknown'}</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="acts-cell">${entry.totalActivities || 0}</td>
-                    <td class="value-cell">${dist} km</td>
-                `;
-                tr.addEventListener('click', () => {
-                    window.location.href = 'profile.html?id=' + entry.athlete.id;
-                });
-                leaderboardList.appendChild(tr);
+        const categorySelect = document.getElementById('category-select');
+        if (categorySelect && categorySelect.value !== categoryParam.toUpperCase()) {
+            categorySelect.value = categoryParam.toUpperCase();
+        }
+
+        if (categorySelect && !categorySelect.dataset.listenerAdded) {
+            categorySelect.dataset.listenerAdded = 'true';
+            categorySelect.addEventListener('change', (e) => {
+                const newCat = e.target.value;
+                const url = new URL(window.location);
+                url.searchParams.set('category', newCat);
+                window.history.pushState({}, '', url);
+                loadLeaderboard();
             });
+            window.addEventListener('popstate', () => {
+                let updatedCat = new URLSearchParams(window.location.search).get('category');
+                if (!updatedCat || !validCategories.includes(updatedCat.toUpperCase()) || updatedCat.toUpperCase() === 'OVERALL') {
+                    updatedCat = 'RUN';
+                }
+                if (categorySelect) categorySelect.value = updatedCat.toUpperCase();
+                loadLeaderboard();
+            });
+        }
 
+        const category = categoryParam.toUpperCase();
+
+        leaderboardList.innerHTML = Array(5).fill(`
+            <tr>
+                <td colspan="5">
+                    <div style="height: 48px; background: #334155; border-radius: 8px; animation: pulse 1.5s infinite;"></div>
+                </td>
+            </tr>
+        `).join('');
+
+        const cacheKey = `${timeFilter}_${category}`;
+        let data = leaderboardCache[cacheKey];
+
+        try {
+            if (!data) {
+                const res = await fetch(`/api/dashboard/leaderboard?timeFilter=${timeFilter}&category=${category}`);
+                data = await res.json();
+                leaderboardCache[cacheKey] = data;
+            }
+
+            updateLeaderboardUI(data, category);
         } catch (e) {
             console.error(e);
-            leaderboardList.innerHTML = '<tr><td colspan="4" class="loading-text">Failed to load.</td></tr>';
+            leaderboardList.innerHTML = '<tr><td colspan="5" class="loading-text">Failed to load.</td></tr>';
         }
+    }
+
+    function updateLeaderboardUI(data, category) {
+        const titleEl = document.getElementById('leaderboard-title');
+        const subtitleEl = document.getElementById('leaderboard-subtitle');
+        const championLabelEl = document.getElementById('champion-label');
+        const colDistanceEl = document.getElementById('col-distance');
+        const colActivitiesEl = document.getElementById('col-activities');
+        const colAverageEl = document.getElementById('col-average');
+
+        let categoryName = "Global";
+        let categoryEmoji = "🌍";
+        let activityName = "ACTIVITIES";
+        let distanceName = "DISTANCE";
+
+        switch(category) {
+            case 'RUN': categoryName = 'Running'; categoryEmoji = '🏃'; activityName = 'RUNS'; distanceName = 'RUN DISTANCE'; break;
+            case 'RIDE': categoryName = 'Cycling'; categoryEmoji = '🚴'; activityName = 'RIDES'; distanceName = 'RIDE DISTANCE'; break;
+            case 'WALK': categoryName = 'Walking'; categoryEmoji = '🚶'; activityName = 'WALKS'; distanceName = 'WALK DISTANCE'; break;
+            case 'HIKE': categoryName = 'Hiking'; categoryEmoji = '🥾'; activityName = 'HIKES'; distanceName = 'HIKE DISTANCE'; break;
+            case 'SWIM': categoryName = 'Swimming'; categoryEmoji = '🏊'; activityName = 'SWIMS'; distanceName = 'SWIM DISTANCE'; break;
+            default: categoryName = 'Running'; categoryEmoji = '🏃'; activityName = 'RUNS'; distanceName = 'RUN DISTANCE'; break;
+        }
+
+        let pluralName = "PERFORMERS";
+        switch(category) {
+            case 'RUN': pluralName = 'RUNNERS'; break;
+            case 'RIDE': pluralName = 'CYCLISTS'; break;
+            case 'WALK': pluralName = 'WALKERS'; break;
+            case 'HIKE': pluralName = 'HIKERS'; break;
+            case 'SWIM': pluralName = 'SWIMMERS'; break;
+            default: pluralName = 'RUNNERS'; break;
+        }
+
+        if (titleEl) titleEl.textContent = `${categoryName} Leaderboard`;
+        if (subtitleEl) subtitleEl.textContent = `TOP ${pluralName}`;
+        if (championLabelEl) championLabelEl.textContent = `■ ${categoryName.toUpperCase()} CHAMPION`;
+        if (colDistanceEl) colDistanceEl.textContent = distanceName;
+        if (colActivitiesEl) colActivitiesEl.textContent = activityName;
+        
+        if (data.length === 0) {
+            leaderboardList.innerHTML = `<tr>
+                <td colspan="5" style="text-align: center; padding: 40px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">${categoryEmoji}</div>
+                    <h3 style="color: #f8fafc; margin-bottom: 8px;">No ${categoryName.toLowerCase()} activities recorded yet.</h3>
+                    <p style="color: #94a3b8;">Be the first athlete to claim the top spot!</p>
+                </td>
+            </tr>`;
+            championBanner.classList.add('hidden');
+            return;
+        }
+
+        const champ = data[0];
+        championAvatar.src = champ.athlete.avatarUrl || '';
+        championName.textContent = champ.athlete.name;
+        championDist.innerHTML = `${champ.totalDistance ? champ.totalDistance.toFixed(1) : '0.0'} <span class="unit">km</span>`;
+        championActs.textContent = champ.totalActivities || 0;
+        championBanner.classList.remove('hidden');
+
+        leaderboardList.innerHTML = '';
+        data.forEach((entry, idx) => {
+            const rankNum = String(idx + 1).padStart(2, '0');
+            const isTop = idx === 0 ? 'top-rank' : '';
+            const dist = entry.totalDistance ? entry.totalDistance.toFixed(1) : '0.0';
+            const avg = entry.averageDistance ? entry.averageDistance.toFixed(1) : '0.0';
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="rank-cell ${isTop}">${rankNum}</td>
+                <td>
+                    <div class="athlete-cell">
+                        <img src="${entry.athlete.avatarUrl || ''}" alt="">
+                        <div class="athlete-cell-info">
+                            <span class="athlete-cell-name">${entry.athlete.name}</span>
+                            <span class="athlete-cell-status">Strava Connected · ${entry.athlete.city || 'Unknown'}</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="value-cell" style="text-align: right;">${dist} km</td>
+                <td class="acts-cell" style="text-align: right;">${entry.totalActivities || 0}</td>
+                <td class="value-cell" style="text-align: right;">${avg} km</td>
+            `;
+            tr.addEventListener('click', () => {
+                window.location.href = 'profile.html?id=' + entry.athlete.id;
+            });
+            leaderboardList.appendChild(tr);
+        });
     }
 
     async function loadGlobalFeed() {

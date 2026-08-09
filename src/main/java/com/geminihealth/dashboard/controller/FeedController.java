@@ -38,6 +38,9 @@ public class FeedController {
     @Autowired
     private ActivityRepository activityRepository;
 
+    @Autowired
+    private com.geminihealth.dashboard.service.FeedService feedService;
+
     private AthleteProfile getAuthenticatedAthlete(String athleteIdCookie) {
         if (athleteIdCookie == null || athleteIdCookie.isEmpty()) {
             return null;
@@ -77,7 +80,9 @@ public class FeedController {
 
     @PostMapping
     public ResponseEntity<?> createPost(
-            @RequestBody Map<String, Object> payload,
+            @RequestParam(value = "caption", required = false) String caption,
+            @RequestParam(value = "activityId", required = false) String activityId,
+            @RequestParam(value = "image", required = false) org.springframework.web.multipart.MultipartFile image,
             @CookieValue(value = "athlete_id", required = false) String athleteIdCookie) {
         
         AthleteProfile athlete = getAuthenticatedAthlete(athleteIdCookie);
@@ -85,25 +90,15 @@ public class FeedController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
         }
 
-        Post post = new Post();
-        post.setAthlete(athlete);
-        post.setCaption((String) payload.get("caption"));
-
-        if (payload.containsKey("activityId") && payload.get("activityId") != null) {
-            try {
-                Long activityId = Long.parseLong(payload.get("activityId").toString());
-                Optional<Activity> activityOpt = activityRepository.findById(activityId);
-                if (activityOpt.isPresent() && activityOpt.get().getAthlete().getId().equals(athlete.getId())) {
-                    post.setActivity(activityOpt.get());
-                }
-            } catch (NumberFormatException e) {
-                // Invalid activity ID format
-            }
+        try {
+            Post savedPost = feedService.createPost(athlete, caption, activityId, image);
+            populatePostMetadata(savedPost, athlete);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedPost);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unable to process uploaded image.");
         }
-
-        Post savedPost = postRepository.save(post);
-        populatePostMetadata(savedPost, athlete);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedPost);
     }
 
     @DeleteMapping("/{postId}")
@@ -135,7 +130,7 @@ public class FeedController {
         likeRepository.deleteByPostId(postId);
         savedPostRepository.deleteByPostId(postId);
 
-        postRepository.delete(post);
+        feedService.deletePost(post);
         return ResponseEntity.ok().build();
     }
 

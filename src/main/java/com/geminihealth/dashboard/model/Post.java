@@ -22,6 +22,9 @@ public class Post {
     @Column(length = 2000)
     private String caption;
 
+    @Column(name = "image_path", length = 1000)
+    private String imagePath;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "activity_id")
     private Activity activity;
@@ -72,6 +75,14 @@ public class Post {
 
     public void setCaption(String caption) {
         this.caption = caption;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
     }
 
     public Activity getActivity() {

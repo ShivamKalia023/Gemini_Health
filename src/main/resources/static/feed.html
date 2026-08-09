@@ -21,15 +21,25 @@
             <!-- Create Post Card -->
             <div class="create-post-card">
                 <textarea id="post-caption-input" class="create-post-textarea" placeholder="Share your latest workout or thoughts..."></textarea>
-                
+                <div id="image-upload-preview-container" style="display:none; margin-bottom: 12px; position: relative;">
+                    <img id="image-upload-preview" src="" alt="Image Preview" style="width: 100%; max-height: 300px; object-fit: contain; border-radius: 8px; background: #f8fafc;">
+                    <button type="button" id="remove-image-btn" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;">&times;</button>
+                </div>
+
                 <div id="selected-activity-preview" style="display:none; margin-bottom: 12px;" class="post-activity-card">
                     <!-- Selected activity preview will be injected here -->
                 </div>
 
-                <div class="create-post-actions">
-                    <button id="open-activity-picker-btn" class="activity-picker-btn">
-                        <span style="font-size: 16px;">+</span> Attach Activity
-                    </button>
+                <div class="create-post-actions" style="display: flex; gap: 10px; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="file" id="image-upload-input" accept="image/jpeg, image/png, image/webp" style="display:none;" />
+                        <button id="add-image-btn" class="activity-picker-btn" style="display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="camera" style="width: 18px; height: 18px;"></i> Photo
+                        </button>
+                        <button id="open-activity-picker-btn" class="activity-picker-btn">
+                            <span style="font-size: 16px;">+</span> Attach Activity
+                        </button>
+                    </div>
                     <button id="submit-post-btn" class="post-btn">Post</button>
                 </div>
             </div>
@@ -60,6 +70,12 @@
                 </div>
             </div>
         </div>
+    </div>
+    
+    <!-- Full Screen Image Viewer Modal -->
+    <div id="image-viewer-modal" class="modal-overlay" style="z-index: 1000; display: none; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; padding: 20px;">
+        <span class="modal-close" id="close-image-viewer" style="position: absolute; top: 20px; right: 30px; font-size: 40px; color: white; cursor: pointer;">&times;</span>
+        <img class="modal-content" id="full-size-image" style="max-width: 100%; max-height: 90vh; border-radius: 8px; object-fit: contain;">
     </div>
     
     <script src="js/app.js?v=1.0.16"></script>

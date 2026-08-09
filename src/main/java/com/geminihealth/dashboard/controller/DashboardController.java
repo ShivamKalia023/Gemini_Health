@@ -72,10 +72,14 @@ public class DashboardController {
     }
 
     @GetMapping("/leaderboard")
-    public ResponseEntity<List<Map<String, Object>>> getLeaderboard(@RequestParam(required = false, defaultValue = "all") String timeFilter) {
+    public ResponseEntity<List<Map<String, Object>>> getLeaderboard(
+            @RequestParam(required = false, defaultValue = "all") String timeFilter,
+            @RequestParam(required = false, defaultValue = "RUN") String category) {
+        
         LocalDateTime startDate = calculateStartDate(timeFilter);
         List<AthleteProfile> athletes = athleteRepository.findAll();
         List<Map<String, Object>> leaderboard = new ArrayList<>();
+        String catLower = category.toLowerCase();
 
         for (AthleteProfile athlete : athletes) {
             List<Activity> activities;
@@ -84,32 +88,69 @@ public class DashboardController {
             } else {
                 activities = activityRepository.findByAthleteIdOrderByStartDateDesc(athlete.getId());
             }
-            Activity lastRun = null;
             
+            double totalDistance = 0.0;
+            int totalActivities = 0;
+            double longestActivity = 0.0;
+
             for (Activity act : activities) {
-                if (act.getType() != null && act.getType().toLowerCase().contains("run")) {
-                    lastRun = act;
-                    break;
+                String type = act.getType() != null ? act.getType().toLowerCase() : "";
+                boolean matches = false;
+                
+                if (catLower.equals("run") || catLower.equals("running")) {
+                    matches = type.contains("run");
+                } else if (catLower.equals("ride") || catLower.equals("cycling")) {
+                    matches = type.contains("ride") || type.contains("cycle") || type.contains("biking");
+                } else if (catLower.equals("walk") || catLower.equals("walking")) {
+                    matches = type.contains("walk");
+                } else if (catLower.equals("hike") || catLower.equals("hiking")) {
+                    matches = type.contains("hike");
+                } else if (catLower.equals("swim") || catLower.equals("swimming")) {
+                    matches = type.contains("swim");
+                }
+
+                if (matches) {
+                    totalActivities++;
+                    double dist = act.getDistance() != null ? act.getDistance() : 0.0;
+                    totalDistance += dist;
+                    if (dist > longestActivity) {
+                        longestActivity = dist;
+                    }
                 }
             }
 
-            Map<String, Object> entry = new HashMap<>();
-            entry.put("athlete", athlete);
-            entry.put("totalActivities", activities.size());
-            if (lastRun != null) {
-                entry.put("lastRunDistance", lastRun.getDistance());
-                entry.put("lastRunDate", lastRun.getStartDate());
-            } else {
-                entry.put("lastRunDistance", 0.0);
+            if (totalActivities > 0) {
+                double averageDistance = totalActivities > 0 ? totalDistance / totalActivities : 0.0;
+                Map<String, Object> entry = new HashMap<>();
+                entry.put("athlete", athlete);
+                entry.put("totalDistance", totalDistance);
+                entry.put("totalActivities", totalActivities);
+                entry.put("longestActivity", longestActivity);
+                entry.put("averageDistance", averageDistance);
+                entry.put("streak", 0); // Placeholder
+                leaderboard.add(entry);
             }
-            leaderboard.add(entry);
         }
 
-        // Sort descending by lastRunDistance
-        leaderboard.sort((a, b) -> Double.compare(
-                (Double) b.get("lastRunDistance"),
-                (Double) a.get("lastRunDistance")
-        ));
+        // Sort: 1. Total Distance (DESC), 2. Total Activities (DESC), 3. Longest Activity (DESC), 4. Athlete Name (ASC)
+        leaderboard.sort((a, b) -> {
+            int cmp = Double.compare((Double) b.get("totalDistance"), (Double) a.get("totalDistance"));
+            if (cmp != 0) return cmp;
+            cmp = Integer.compare((Integer) b.get("totalActivities"), (Integer) a.get("totalActivities"));
+            if (cmp != 0) return cmp;
+            cmp = Double.compare((Double) b.get("longestActivity"), (Double) a.get("longestActivity"));
+            if (cmp != 0) return cmp;
+            
+            AthleteProfile athA = (AthleteProfile) a.get("athlete");
+            AthleteProfile athB = (AthleteProfile) b.get("athlete");
+            String nameA = athA != null && athA.getName() != null ? athA.getName() : "";
+            String nameB = athB != null && athB.getName() != null ? athB.getName() : "";
+            return nameA.compareToIgnoreCase(nameB);
+        });
+        
+        for (int i = 0; i < leaderboard.size(); i++) {
+            leaderboard.get(i).put("rank", i + 1);
+        }
 
         return ResponseEntity.ok(leaderboard);
     }
