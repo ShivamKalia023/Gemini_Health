@@ -222,6 +222,13 @@ public class StravaService implements CommandLineRunner {
                         continue;
                     }
                     
+                    // Skip manually entered Strava activities (use official Strava 'manual' field)
+                    // If the field is absent, default to false (treat as recorded) per Strava API contract
+                    if (actNode.hasNonNull("manual") && actNode.get("manual").asBoolean(false)) {
+                        log.info("Skipping manually entered Strava activity: " + stravaActivityId);
+                        continue;
+                    }
+                    
                     Activity act = new Activity();
                     act.setStravaActivityId(stravaActivityId);
                     act.setAthlete(athlete);
