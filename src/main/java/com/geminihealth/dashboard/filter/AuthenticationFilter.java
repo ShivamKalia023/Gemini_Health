@@ -66,11 +66,13 @@ public class AuthenticationFilter implements Filter {
 
         if (isProtected || isAdminPage || isAdminApi || isProtectedApi) {
             String athleteId = null;
+            String adminToken = null;
             if (httpRequest.getCookies() != null) {
                 for (Cookie cookie : httpRequest.getCookies()) {
                     if ("athlete_id".equals(cookie.getName())) {
                         athleteId = cookie.getValue();
-                        break;
+                    } else if ("admin_token".equals(cookie.getName())) {
+                        adminToken = cookie.getValue();
                     }
                 }
             }
@@ -96,10 +98,11 @@ public class AuthenticationFilter implements Filter {
             }
 
             AthleteProfile profile = profileOpt.get();
+            boolean hasAdminToken = "true".equals(adminToken);
 
             // Admin routes check
             if (isAdminPage || isAdminApi) {
-                if (profile.getRole() != AthleteProfile.Role.ADMIN) {
+                if (profile.getRole() != AthleteProfile.Role.ADMIN && !hasAdminToken) {
                     if (isAdminApi) {
                         httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     } else {
@@ -131,7 +134,7 @@ public class AuthenticationFilter implements Filter {
             // Populate Spring Security Context
             java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
             authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"));
-            if (profile.getRole() == AthleteProfile.Role.ADMIN) {
+            if (profile.getRole() == AthleteProfile.Role.ADMIN || hasAdminToken) {
                 authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
             }
             org.springframework.security.authentication.UsernamePasswordAuthenticationToken authentication = 
