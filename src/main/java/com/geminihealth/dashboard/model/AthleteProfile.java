@@ -62,6 +62,18 @@ public class AthleteProfile {
     @Enumerated(EnumType.STRING)
     private Status status = Status.PENDING;
 
+    @Column(name = "strava_access_token")
+    private String stravaAccessToken;
+
+    @Column(name = "strava_refresh_token")
+    private String stravaRefreshToken;
+
+    @Column(name = "strava_token_expires_at")
+    private LocalDateTime stravaTokenExpiresAt;
+
+    @Column(name = "last_strava_sync")
+    private LocalDateTime lastStravaSync;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -238,4 +250,16 @@ public class AthleteProfile {
     public void setActivities(List<Activity> activities) {
         this.activities = activities;
     }
+
+    public String getStravaAccessToken() { return stravaAccessToken; }
+    public void setStravaAccessToken(String stravaAccessToken) { this.stravaAccessToken = stravaAccessToken; }
+
+    public String getStravaRefreshToken() { return stravaRefreshToken; }
+    public void setStravaRefreshToken(String stravaRefreshToken) { this.stravaRefreshToken = stravaRefreshToken; }
+
+    public LocalDateTime getStravaTokenExpiresAt() { return stravaTokenExpiresAt; }
+    public void setStravaTokenExpiresAt(LocalDateTime stravaTokenExpiresAt) { this.stravaTokenExpiresAt = stravaTokenExpiresAt; }
+
+    public LocalDateTime getLastStravaSync() { return lastStravaSync; }
+    public void setLastStravaSync(LocalDateTime lastStravaSync) { this.lastStravaSync = lastStravaSync; }
 }

@@ -169,9 +169,20 @@ public class StravaService implements CommandLineRunner {
         
         athlete = athleteRepository.save(athlete);
 
+        // Save OAuth tokens
+        String refreshToken = tokenNode.hasNonNull("refresh_token") ? tokenNode.get("refresh_token").asText() : null;
+        Long expiresAt = tokenNode.hasNonNull("expires_at") ? tokenNode.get("expires_at").asLong() : null;
+        
+        athlete.setStravaAccessToken(accessToken);
+        athlete.setStravaRefreshToken(refreshToken);
+        if (expiresAt != null) {
+            athlete.setStravaTokenExpiresAt(LocalDateTime.ofEpochSecond(expiresAt, 0, java.time.ZoneOffset.UTC));
+        }
+        athlete = athleteRepository.save(athlete);
+
         // 3. Fetch recent activities
         log.info("Fetching recent activities for " + athlete.getName());
-        fetchAndSaveActivities(athlete, accessToken);
+        fetchAndSaveActivities(athlete);
 
         return athlete;
     }
@@ -197,106 +208,267 @@ public class StravaService implements CommandLineRunner {
         }
     }
 
-    private void fetchAndSaveActivities(AthleteProfile athlete, String accessToken) {
+    private String mapStravaTypeToAppType(String stravaType) {
+        if (stravaType == null) return "UNKNOWN"; // Safe fallback
+        
+        String lower = stravaType.toLowerCase();
+
+        // Run
+        if (lower.equals("run") || lower.equals("virtualrun") || lower.equals("trailrun")) {
+            return "RUN";
+        }
+        
+        // Ride / Cycling
+        if (lower.contains("ride") || lower.contains("cycl") || lower.contains("bik") || lower.contains("handcycle") || lower.contains("velomobile")) {
+            return "RIDE";
+        }
+        
+        // Swim
+        if (lower.contains("swim")) {
+            return "SWIM";
+        }
+        
+        // Walk
+        if (lower.equals("walk")) {
+            return "WALK";
+        }
+        
+        // Hike
+        if (lower.contains("hike")) {
+            return "HIKE";
+        }
+        
+        // Gym / Workout / Strength
+        if (lower.contains("workout") || lower.contains("weight") || lower.contains("gym") || lower.contains("train") || lower.contains("crossfit") || lower.contains("yoga") || lower.contains("elliptical") || lower.contains("stairstepper") || lower.contains("row")) {
+            return "GYM";
+        }
+        
+        return "UNKNOWN";
+    }
+
+    public static class SyncResult {
+        public int fetched = 0;
+        public int saved = 0;
+        public int duplicates = 0;
+        public int skipped = 0;
+        public int failed = 0;
+    }
+
+    public String getValidAccessToken(AthleteProfile athlete) throws Exception {
+        if (athlete.getStravaAccessToken() == null) {
+            throw new Exception("Athlete has no Strava access token");
+        }
+
+        // If token expires in more than 5 minutes, it's valid
+        if (athlete.getStravaTokenExpiresAt() != null && 
+            athlete.getStravaTokenExpiresAt().isAfter(LocalDateTime.now(java.time.ZoneOffset.UTC).plusMinutes(5))) {
+            return athlete.getStravaAccessToken();
+        }
+
+        if (athlete.getStravaRefreshToken() == null) {
+            throw new Exception("Athlete token expired and no refresh token available");
+        }
+
+        log.info("Refreshing Strava token for athlete: " + athlete.getName());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("client_id", clientId);
+        map.add("client_secret", clientSecret);
+        map.add("refresh_token", athlete.getStravaRefreshToken());
+        map.add("grant_type", "refresh_token");
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+        ResponseEntity<JsonNode> response = restTemplate.postForEntity(
+                "https://www.strava.com/oauth/token", request, JsonNode.class);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new Exception("Failed to refresh Strava token");
+        }
+
+        JsonNode tokenNode = response.getBody();
+        String accessToken = tokenNode.get("access_token").asText();
+        String refreshToken = tokenNode.hasNonNull("refresh_token") ? tokenNode.get("refresh_token").asText() : athlete.getStravaRefreshToken();
+        Long expiresAt = tokenNode.hasNonNull("expires_at") ? tokenNode.get("expires_at").asLong() : null;
+
+        athlete.setStravaAccessToken(accessToken);
+        athlete.setStravaRefreshToken(refreshToken);
+        if (expiresAt != null) {
+            athlete.setStravaTokenExpiresAt(LocalDateTime.ofEpochSecond(expiresAt, 0, java.time.ZoneOffset.UTC));
+        }
+        
+        athleteRepository.save(athlete);
+        return accessToken;
+    }
+
+    public SyncResult fetchAndSaveActivities(AthleteProfile athlete) {
+        SyncResult result = new SyncResult();
+        
+        String accessToken;
+        try {
+            accessToken = getValidAccessToken(athlete);
+        } catch (Exception e) {
+            log.error("Sync failed for athlete " + athlete.getName() + " due to auth error: " + e.getMessage());
+            return result;
+        }
+
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        try {
-            ResponseEntity<JsonNode[]> response = restTemplate.exchange(
-                    "https://www.strava.com/api/v3/athlete/activities?per_page=30",
-                    HttpMethod.GET,
-                    entity,
-                    JsonNode[].class
-            );
-
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                for (JsonNode actNode : response.getBody()) {
-                    String stravaActivityId = actNode.hasNonNull("id") ? actNode.get("id").asText() : null;
-                    if (stravaActivityId == null) {
-                        continue;
-                    }
-                    
-                    // Skip if already exists
-                    if (activityRepository.findByStravaActivityId(stravaActivityId).isPresent()) {
-                        continue;
-                    }
-                    
-                    // Skip manually entered Strava activities (use official Strava 'manual' field)
-                    // If the field is absent, default to false (treat as recorded) per Strava API contract
-                    if (actNode.hasNonNull("manual") && actNode.get("manual").asBoolean(false)) {
-                        log.info("Skipping manually entered Strava activity: " + stravaActivityId);
-                        continue;
-                    }
-                    
-                    Activity act = new Activity();
-                    act.setStravaActivityId(stravaActivityId);
-                    act.setAthlete(athlete);
-                    act.setName(actNode.hasNonNull("name") ? actNode.get("name").asText() : "Strava Activity");
-                    
-                    // Use sport_type as primary and type as fallback since type is deprecated
-                    String sportType = "Run"; // default
-                    if (actNode.hasNonNull("sport_type")) {
-                        sportType = actNode.get("sport_type").asText();
-                    } else if (actNode.hasNonNull("type")) {
-                        sportType = actNode.get("type").asText();
-                    }
-                    act.setType(sportType);
-                    
-                    // Parse date safely
-                    LocalDateTime startDate = null;
-                    if (actNode.hasNonNull("start_date_local")) {
-                        startDate = parseStravaDate(actNode.get("start_date_local").asText());
-                    }
-                    if (startDate == null && actNode.hasNonNull("start_date")) {
-                        startDate = parseStravaDate(actNode.get("start_date").asText());
-                    }
-                    if (startDate == null) {
-                        startDate = LocalDateTime.now();
-                    }
-                    act.setStartDate(startDate);
-                    
-                    double distance = actNode.hasNonNull("distance") ? actNode.get("distance").asDouble() / 1000.0 : 0.0;
-                    act.setDistance(distance);
-                    
-                    int movingTime = actNode.hasNonNull("moving_time") ? actNode.get("moving_time").asInt() : 0;
-                    int elapsedTime = actNode.hasNonNull("elapsed_time") ? actNode.get("elapsed_time").asInt() : movingTime;
-                    act.setMovingTime(movingTime);
-                    act.setElapsedTime(elapsedTime);
-                    
-                    if (actNode.hasNonNull("total_elevation_gain")) {
-                        act.setTotalElevationGain(actNode.get("total_elevation_gain").asDouble());
-                    } else {
-                        act.setTotalElevationGain(0.0);
-                    }
-                    
-                    if (actNode.hasNonNull("average_heartrate")) {
-                        act.setAverageHr(actNode.get("average_heartrate").asInt());
-                    }
-                    if (actNode.hasNonNull("max_heartrate")) {
-                        act.setMaxHr(actNode.get("max_heartrate").asInt());
-                    }
-                    
-                    if (actNode.hasNonNull("average_speed")) {
-                        act.setAverageSpeed(actNode.get("average_speed").asDouble() * 3.6); // m/s to km/h
-                    } else if (movingTime > 0 && distance > 0) {
-                        act.setAverageSpeed(distance / (movingTime / 3600.0));
-                    } else {
-                        act.setAverageSpeed(0.0);
-                    }
-                    
-                    if (actNode.hasNonNull("average_watts")) {
-                        act.setAverageWatts(actNode.get("average_watts").asDouble());
-                    }
-                    
-                    act.setTrimp(performanceService.calculateTrimp(act, athlete));
-                    activityRepository.save(act);
-                }
-                log.info("Successfully fetched and saved recent activities.");
-            }
-        } catch (Exception e) {
-            log.error("Failed to fetch activities: " + e.getMessage());
+        // Determine "after" timestamp for incremental sync
+        Long afterTimestamp = null;
+        if (athlete.getLastStravaSync() != null) {
+            // Overlap of 3 days (259200 seconds) to catch delayed or edited activities
+            afterTimestamp = athlete.getLastStravaSync().toEpochSecond(java.time.ZoneOffset.UTC) - 259200;
+        } else {
+            // Initial sync: fetch last 3 months (90 days)
+            afterTimestamp = LocalDateTime.now(java.time.ZoneOffset.UTC).minusDays(90).toEpochSecond(java.time.ZoneOffset.UTC);
         }
+
+        int page = 1;
+        boolean hasMore = true;
+
+        while (hasMore) {
+            try {
+                String url = "https://www.strava.com/api/v3/athlete/activities?per_page=50&page=" + page;
+                if (afterTimestamp != null) {
+                    url += "&after=" + afterTimestamp;
+                }
+
+                ResponseEntity<JsonNode[]> response = restTemplate.exchange(
+                        url, HttpMethod.GET, entity, JsonNode[].class
+                );
+
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    JsonNode[] activitiesNode = response.getBody();
+                    if (activitiesNode.length == 0) {
+                        hasMore = false;
+                        break;
+                    }
+
+                    for (JsonNode actNode : activitiesNode) {
+                        result.fetched++;
+                        
+                        try {
+                            String stravaActivityId = actNode.hasNonNull("id") ? actNode.get("id").asText() : null;
+                            if (stravaActivityId == null) {
+                                result.skipped++;
+                                continue;
+                            }
+                            
+                            // Check for duplicates
+                            if (activityRepository.findByStravaActivityId(stravaActivityId).isPresent()) {
+                                result.duplicates++;
+                                continue; // Idempotent: already exists, we skip creating a new one
+                            }
+                            
+                            // Skip manually entered Strava activities
+                            if (actNode.hasNonNull("manual") && actNode.get("manual").asBoolean(false)) {
+                                log.info("Skipping manually entered Strava activity: " + stravaActivityId);
+                                result.skipped++;
+                                continue;
+                            }
+                            
+                            Activity act = new Activity();
+                            act.setStravaActivityId(stravaActivityId);
+                            act.setAthlete(athlete);
+                            act.setName(actNode.hasNonNull("name") ? actNode.get("name").asText() : "Strava Activity");
+                            
+                            String sportType = "Run"; 
+                            if (actNode.hasNonNull("sport_type")) {
+                                sportType = actNode.get("sport_type").asText();
+                            } else if (actNode.hasNonNull("type")) {
+                                sportType = actNode.get("type").asText();
+                            }
+                            act.setType(mapStravaTypeToAppType(sportType));
+                            if ("UNKNOWN".equals(act.getType())) {
+                                log.info("Skipping unknown Strava activity type: " + sportType + " for activity " + stravaActivityId);
+                                result.skipped++;
+                                continue;
+                            }
+                            
+                            LocalDateTime startDate = null;
+                            if (actNode.hasNonNull("start_date_local")) {
+                                startDate = parseStravaDate(actNode.get("start_date_local").asText());
+                            }
+                            if (startDate == null && actNode.hasNonNull("start_date")) {
+                                startDate = parseStravaDate(actNode.get("start_date").asText());
+                            }
+                            if (startDate == null) {
+                                startDate = LocalDateTime.now();
+                            }
+                            act.setStartDate(startDate);
+                            
+                            double distance = actNode.hasNonNull("distance") ? actNode.get("distance").asDouble() / 1000.0 : 0.0;
+                            act.setDistance(distance);
+                            
+                            int movingTime = actNode.hasNonNull("moving_time") ? actNode.get("moving_time").asInt() : 0;
+                            int elapsedTime = actNode.hasNonNull("elapsed_time") ? actNode.get("elapsed_time").asInt() : movingTime;
+                            act.setMovingTime(movingTime);
+                            act.setElapsedTime(elapsedTime);
+                            
+                            act.setTotalElevationGain(actNode.hasNonNull("total_elevation_gain") ? actNode.get("total_elevation_gain").asDouble() : 0.0);
+                            
+                            if (actNode.hasNonNull("average_heartrate")) {
+                                act.setAverageHr(actNode.get("average_heartrate").asInt());
+                            }
+                            if (actNode.hasNonNull("max_heartrate")) {
+                                act.setMaxHr(actNode.get("max_heartrate").asInt());
+                            }
+                            
+                            if (actNode.hasNonNull("average_speed")) {
+                                act.setAverageSpeed(actNode.get("average_speed").asDouble() * 3.6);
+                            } else if (movingTime > 0 && distance > 0) {
+                                act.setAverageSpeed(distance / (movingTime / 3600.0));
+                            } else {
+                                act.setAverageSpeed(0.0);
+                            }
+                            
+                            if (actNode.hasNonNull("average_watts")) {
+                                act.setAverageWatts(actNode.get("average_watts").asDouble());
+                            }
+                            
+                            act.setTrimp(performanceService.calculateTrimp(act, athlete));
+                            activityRepository.save(act);
+                            result.saved++;
+                            
+                        } catch (Exception e) {
+                            log.error("Failed to process individual activity: " + e.getMessage());
+                            result.failed++;
+                        }
+                    }
+
+                    if (activitiesNode.length < 50) {
+                        hasMore = false;
+                    } else {
+                        page++;
+                    }
+                } else {
+                    log.error("Failed to fetch activities: HTTP " + response.getStatusCode());
+                    hasMore = false;
+                }
+            } catch (Exception e) {
+                log.error("Failed to fetch activities page " + page + ": " + e.getMessage());
+                hasMore = false; 
+            }
+        }
+
+        log.info(String.format("Sync complete for %s. Fetched: %d, Saved: %d, Duplicates: %d, Skipped: %d, Failed: %d",
+                athlete.getName(), result.fetched, result.saved, result.duplicates, result.skipped, result.failed));
+
+        // Update last sync time only if we fetched and didn't completely fail
+        // If there were any failures, we do NOT advance lastStravaSync to allow retry next time.
+        if (result.failed == 0) {
+            athlete.setLastStravaSync(LocalDateTime.now(java.time.ZoneOffset.UTC));
+            athleteRepository.save(athlete);
+        } else {
+            log.warn(String.format("Sync completed with %d failures for %s. lastStravaSync not advanced to allow retry.", result.failed, athlete.getName()));
+        }
+        
+        return result;
     }
 
     private void createDefaultProfiles() {

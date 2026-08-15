@@ -37,10 +37,7 @@
                     </div>
                     <div style="margin-top: 20px;">
                         <button id="delete-profile-btn" class="delete-btn admin-only hidden" style="width: 100%; margin-bottom: 10px;">Delete Profile</button>
-                        <label class="file-upload-label" style="display:block; text-align: center; border-color: #444; color: #ccc; background: transparent;">
-                            <span>Upload CSV / GPX</span>
-                            <input type="file" id="file-import-input" accept=".csv,.gpx">
-                        </label>
+                        <button id="btn-add-activity-manual" style="width: 100%; background: #e95420; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; box-shadow: 0 1px 3px rgba(233, 84, 32, 0.3);">Add Activity Manually</button>
                     </div>
                 </aside>
 
@@ -137,12 +134,102 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- My Activity Requests -->
+                    <div class="activity-requests-card" style="margin-top: 30px; background: var(--bg-card); border-radius: 6px; padding: 20px; border: 1px solid var(--border-color); display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <h3 style="color: var(--text-secondary); font-size: 11px; letter-spacing: 1px; margin-bottom: 15px; text-transform: uppercase;">MY ACTIVITY REQUESTS</h3>
+                        <div id="my-requests-list" style="overflow-y: auto; max-height: 400px; display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
                 </main>
             </div>
+        </div>
+    </div>
+
+    <!-- Add Activity Modal -->
+    <div id="add-activity-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000;">
+        <div class="modal-content" style="background: var(--bg-card); border-radius: 8px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h3 style="color: var(--text-primary); font-size: 18px; font-weight: 700; margin-bottom: 20px;">Add Activity Manually</h3>
+            <form id="add-activity-form" style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">ACTIVITY TYPE *</label>
+                        <select id="activity-type" required style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                            <option value="">Select Type</option>
+                            <option value="Run">Run</option>
+                            <option value="Ride">Ride</option>
+                            <option value="Walk">Walk</option>
+                            <option value="Hike">Hike</option>
+                            <option value="Swim">Swim</option>
+                            <option value="Workout">Workout</option>
+                        </select>
+                    </div>
+                    <div style="flex: 2;">
+                        <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">ACTIVITY NAME *</label>
+                        <input type="text" id="activity-name" required placeholder="e.g. Morning Run" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">START DATE & TIME *</label>
+                        <input type="datetime-local" id="activity-start-date" required style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">DISTANCE (km) *</label>
+                        <input type="number" step="0.01" min="0" id="activity-distance" required placeholder="0.0" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">ELAPSED TIME (min) *</label>
+                        <input type="number" min="0" id="activity-elapsed-time" required placeholder="Minutes" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                    </div>
+                    <div style="flex: 1;" id="moving-time-container">
+                        <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">MOVING TIME (min)</label>
+                        <input type="number" min="0" id="activity-moving-time" placeholder="Minutes" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                    </div>
+                </div>
+                <div id="optional-fields-container" style="display: none; flex-direction: column; gap: 12px; margin-top: 8px; padding-top: 16px; border-top: 1px dashed var(--border-color);">
+                    <div style="display: flex; gap: 12px;" class="hr-fields">
+                        <div style="flex: 1;">
+                            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">AVG HR (bpm)</label>
+                            <input type="number" min="0" id="activity-avg-hr" placeholder="e.g. 145" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">MAX HR (bpm)</label>
+                            <input type="number" min="0" id="activity-max-hr" placeholder="e.g. 180" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <div style="flex: 1;" class="speed-field">
+                            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">AVG SPEED (km/h)</label>
+                            <input type="number" step="0.1" min="0" id="activity-avg-speed" placeholder="0.0" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                        </div>
+                        <div style="flex: 1;" class="elevation-field">
+                            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">ELEVATION GAIN (m)</label>
+                            <input type="number" min="0" step="0.1" id="activity-elevation" placeholder="0.0" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px;" class="watts-field">
+                        <div style="flex: 1;">
+                            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">AVG WATTS (Cycling)</label>
+                            <input type="number" min="0" step="0.1" id="activity-avg-watts" placeholder="0.0" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); padding: 8px; font-size: 13px;">
+                        </div>
+                        <div style="flex: 1;"></div>
+                    </div>
+                </div>
+                <div id="add-activity-message" style="font-size: 13px; font-weight: 500; min-height: 20px;"></div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                    <button type="button" id="btn-cancel-activity" style="background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Cancel</button>
+                    <button type="submit" id="add-activity-btn" style="background: #e95420; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;">Submit Activity</button>
+                </div>
+            </form>
         </div>
     </div>
     
     <script src="js/charts.js?v=1.0.1"></script>
     <script src="js/app.js?v=1.0.16"></script>
+    <script src="js/profile.js"></script>
 </body>
 </html>

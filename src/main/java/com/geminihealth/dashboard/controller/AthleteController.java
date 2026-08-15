@@ -259,4 +259,29 @@ public class AthleteController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PostMapping("/{id}/strava/sync")
+    public ResponseEntity<?> syncStravaActivities(@PathVariable Long id,
+                                                  @CookieValue(value = "admin_token", required = false) String adminToken,
+                                                  @CookieValue(value = "athlete_id", required = false) String athleteIdCookie) {
+        boolean isAdmin = "true".equals(adminToken);
+        boolean isSelf = athleteIdCookie != null && athleteIdCookie.equals(id.toString());
+
+        if (!isAdmin && !isSelf) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Unauthorized to sync this profile."));
+        }
+
+        return athleteRepository.findById(id)
+                .map(athlete -> {
+                    try {
+                        StravaService.SyncResult result = stravaService.fetchAndSaveActivities(athlete);
+                        return ResponseEntity.ok(result);
+                    } catch (Exception e) {
+                        log.error("Sync failed for athlete ID " + id + ": " + e.getMessage());
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(Map.of("error", e.getMessage()));
+                    }
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 }

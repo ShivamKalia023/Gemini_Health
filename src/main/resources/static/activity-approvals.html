@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Approvals - Admin Panel</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.10">
+    <link rel="stylesheet" href="css/admin.css?v=1.0.1">
+    <script src="/js/csrf.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="admin-body">
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="admin-brand">
+                <div class="admin-logo">GFG</div>
+                <span>Admin Panel</span>
+            </div>
+            <nav class="admin-nav">
+                <a href="/admin.html#dashboard" class="nav-item">Dashboard Overview</a>
+                <a href="/admin.html#pending" class="nav-item">Pending Requests</a>
+                <a href="/activity-approvals.html" class="nav-item active">Activity Approvals <span id="badge-activity-approvals" class="badge hidden">0</span></a>
+                <a href="/admin.html#approved" class="nav-item">Approved Users</a>
+                <a href="/admin.html#rejected" class="nav-item">Rejected Users</a>
+                <a href="/admin.html#challenges" class="nav-item">Challenges</a>
+                <a href="/admin.html" class="nav-item return-app">&larr; Back to Dashboard</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Header -->
+            <header class="admin-header">
+                <div>
+                    <h1 id="page-title">Activity Approvals</h1>
+                    <div style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">
+                        Review and manage manually submitted activity requests
+                    </div>
+                </div>
+                <div class="admin-profile">
+                    <span>System Administrator</span>
+                    <div class="admin-avatar">A</div>
+                </div>
+            </header>
+
+            <!-- Activity Approvals Section -->
+            <section id="section-activity-approvals" class="admin-section active">
+                <div class="table-container">
+                    <table class="admin-table" id="activity-approvals-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Activity Name</th>
+                                <th>Type</th>
+                                <th>Date</th>
+                                <th>Distance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-activity-approvals">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                    <div id="empty-state" class="hidden" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <h3>No Pending Activity Requests</h3>
+                        <p>All manually submitted activities have been reviewed.</p>
+                    </div>
+                    <div id="loading-state" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        Loading...
+                    </div>
+                    <div id="error-state" class="hidden" style="text-align: center; padding: 40px; color: var(--color-red);">
+                        Unable to load activity approval requests.<br><br>
+                        <button id="btn-retry" class="btn-primary" style="margin-top: 10px;">Retry</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Activity Review Modal -->
+    <div id="activity-review-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3>Activity Submission</h3>
+            <div id="activity-review-content" style="margin: 20px 0; font-size: 14px; line-height: 1.5; color: var(--text-primary);">
+                <!-- Content injected via JS -->
+            </div>
+            <div id="rejection-reason-container" class="hidden" style="margin-bottom: 20px;">
+                <label>Rejection Reason (Optional)</label>
+                <textarea id="rejection-reason" style="width: 100%; padding: 8px; border-radius: 4px; background: var(--bg-body); color: var(--text-primary); border: 1px solid var(--border-color);"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="btn-close-review-modal">Cancel</button>
+                <button class="btn-reject hidden" id="btn-submit-reject" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Reject</button>
+                <button class="btn-approve hidden" id="btn-submit-approve" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Accept Activity</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        Notification Message
+    </div>
+
+    <script src="js/activity-approvals.js"></script>
+</body>
+</html>

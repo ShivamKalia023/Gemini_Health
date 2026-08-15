@@ -91,7 +91,7 @@ public class SecurityConfig {
         // 7. Authorization Model
         http.authorizeHttpRequests(authz -> authz
             .requestMatchers("/", "/welcome.html", "/waiting.html", "/favicon.ico", "/css/**", "/js/**", "/images/**", "/webjars/**", "/uploads/**", "/api/images/**", "/api/athletes/strava/**", "/api/auth/**").permitAll()
-            .requestMatchers("/admin.html", "/api/admin/**").hasRole("ADMIN")
+            .requestMatchers("/admin.html", "/activity-approvals.html", "/api/admin/**").hasRole("ADMIN")
             .requestMatchers("/feed.html", "/profile.html", "/leaderboard.html", "/challenges.html", "/activity.html").hasAnyRole("USER", "ADMIN")
             .anyRequest().authenticated()
         );

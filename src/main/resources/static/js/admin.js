@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     loadDashboard();
-
     // Attach static event listeners
     const btnAddChallenge = document.getElementById('btn-add-challenge');
     if (btnAddChallenge) btnAddChallenge.addEventListener('click', () => openChallengeModal());
@@ -18,26 +17,45 @@ function initNavigation() {
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
-            // Update active nav
-            navItems.forEach(n => n.classList.remove('active'));
-            item.classList.add('active');
-            
-            // Update title
-            document.getElementById('page-title').innerText = item.innerText.replace(/[0-9]/g, '').trim();
-            
-            // Show section
             const target = item.getAttribute('data-target');
-            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-            document.getElementById('section-' + target).classList.add('active');
-            
-            // Load data
-            if (target === 'dashboard') loadDashboard();
-            else if (target === 'pending') loadUsers('pending');
-            else if (target === 'approved') loadUsers('approved');
-            else if (target === 'rejected') loadUsers('rejected');
-            else if (target === 'challenges') loadChallenges();
+            window.location.hash = target;
+            showSection(target);
         });
     });
+
+    window.addEventListener('hashchange', () => {
+        const hash = window.location.hash.substring(1);
+        if (hash) showSection(hash);
+        else showSection('dashboard');
+    });
+
+    const initialHash = window.location.hash.substring(1);
+    if (initialHash) showSection(initialHash);
+    else showSection('dashboard');
+}
+
+function showSection(target) {
+    const navItems = document.querySelectorAll('.nav-item[data-target]');
+    navItems.forEach(n => n.classList.remove('active'));
+    
+    let activeItem = document.querySelector(`.nav-item[data-target="${target}"]`);
+    if (!activeItem) {
+        activeItem = document.querySelector('.nav-item[data-target="dashboard"]');
+        target = 'dashboard';
+    }
+    
+    activeItem.classList.add('active');
+    document.getElementById('page-title').innerText = activeItem.innerText.replace(/[0-9]/g, '').trim();
+    
+    document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+    const section = document.getElementById('section-' + target);
+    if (section) section.classList.add('active');
+    
+    if (target === 'dashboard') loadDashboard();
+    else if (target === 'pending') loadUsers('pending');
+    else if (target === 'approved') loadUsers('approved');
+    else if (target === 'rejected') loadUsers('rejected');
+    else if (target === 'challenges') loadChallenges();
 }
 
 function loadDashboard() {
@@ -59,6 +77,17 @@ function loadDashboard() {
             badge.innerText = data.pendingUsers;
             if (data.pendingUsers > 0) badge.classList.remove('hidden');
             else badge.classList.add('hidden');
+
+            fetch('/api/admin/activity-submissions/pending')
+                .then(r => r.json())
+                .then(submissions => {
+                    const approvalsBadge = document.getElementById('badge-activity-approvals');
+                    if (approvalsBadge) {
+                        approvalsBadge.innerText = submissions.length;
+                        if (submissions.length > 0) approvalsBadge.classList.remove('hidden');
+                        else approvalsBadge.classList.add('hidden');
+                    }
+                }).catch(() => {});
         })
         .catch(console.error);
 }
@@ -113,6 +142,7 @@ function loadUsers(status) {
             });
         });
 }
+
 
 function approveUser(id) {
     fetch(`/api/admin/users/${id}/approve`, { method: 'POST' })
@@ -379,3 +409,5 @@ document.addEventListener('click', (e) => {
         updateChallengeStatus(target.getAttribute('data-challenge-id'), target.getAttribute('data-status'));
     }
 });
+
+

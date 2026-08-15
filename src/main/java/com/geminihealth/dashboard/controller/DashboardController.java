@@ -97,7 +97,9 @@ public class DashboardController {
                 String type = act.getType() != null ? act.getType().toLowerCase() : "";
                 boolean matches = false;
                 
-                if (catLower.equals("run") || catLower.equals("running")) {
+                if (catLower.equals("all") || catLower.equals("overall")) {
+                    matches = true;
+                } else if (catLower.equals("run") || catLower.equals("running")) {
                     matches = type.contains("run");
                 } else if (catLower.equals("ride") || catLower.equals("cycling")) {
                     matches = type.contains("ride") || type.contains("cycle") || type.contains("biking");

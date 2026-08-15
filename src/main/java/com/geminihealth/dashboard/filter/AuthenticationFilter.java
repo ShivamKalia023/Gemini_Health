@@ -32,7 +32,8 @@ public class AuthenticationFilter implements Filter {
     );
 
     private static final List<String> ADMIN_PAGES = Arrays.asList(
-            "/admin.html"
+            "/admin.html",
+            "/activity-approvals.html"
     );
 
     private static final List<String> ADMIN_API = Arrays.asList(
