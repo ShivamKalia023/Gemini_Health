@@ -25,6 +25,7 @@ public class AuthenticationFilter implements Filter {
             
             "/leaderboard.html",
             "/challenges.html",
+            "/challenge-details.html",
             "/profile.html",
             "/activity.html",
             "/feed.html",

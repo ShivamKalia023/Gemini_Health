@@ -448,10 +448,12 @@ public class StravaService implements CommandLineRunner {
                     }
                 } else {
                     log.error("Failed to fetch activities: HTTP " + response.getStatusCode());
+                    result.failed++;
                     hasMore = false;
                 }
             } catch (Exception e) {
                 log.error("Failed to fetch activities page " + page + ": " + e.getMessage());
+                result.failed++;
                 hasMore = false; 
             }
         }

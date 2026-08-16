@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Fitness Group Tracker - Challenge Details</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.11">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/navbar.js"></script>
+    <script src="/js/csrf.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .btn-secondary:hover {
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #1e293b !important;
+        }
+        .leaderboard-row {
+            transition: background-color 0.15s ease;
+        }
+        .leaderboard-row:hover {
+            background-color: #f8fafc !important;
+        }
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <header class="top-nav"></header>
+
+    <div class="app-container" style="justify-content: center; padding-top: 40px; display: flex;">
+        <main class="dashboard-main" style="width: 100%; max-width: 1000px;">
+            <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <span class="section-subtitle" style="font-size: 11px; letter-spacing: 0.5px; color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">CHALLENGE DETAILS</span>
+                    <h3 id="details-page-title" style="margin: 0; font-size: 26px; color: #1e293b; font-weight: 800; line-height: 1.1;">Loading...</h3>
+                </div>
+                <div>
+                    <a href="home.html" class="btn btn-secondary" style="display: flex; align-items: center; gap: 6px; font-weight: 600; padding: 8px 16px; background: #ffffff; border: 1px solid #e2e8f0; color: #475569; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); text-decoration: none; transition: all 0.2s;">
+                        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+
+            <div id="challenge-details-container" style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="loading-text">Loading challenge details...</div>
+            </div>
+            
+            <div id="challenge-leaderboard-section" style="margin-top: 20px; display: none;">
+                <div style="margin-bottom: 0; padding: 12px 16px; background: #ffffff; border: 1px solid #e2e8f0; border-bottom: none; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: #1e293b; font-weight: 700; font-size: 15px;">
+                        <i data-lucide="trophy" style="width: 18px; height: 18px; color: #84cc16;"></i> CHALLENGE LEADERBOARD
+                    </div>
+                    <div class="section-subtitle" id="leaderboard-subtitle" style="color: #64748b; margin: 0; font-size: 11px; font-weight: 600;">LIVE RANKINGS</div>
+                </div>
+                
+                <div class="table-responsive" style="background: #ffffff; border-radius: 0 0 8px 8px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                <th style="padding: 10px 16px; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase;">Rank</th>
+                                <th style="padding: 10px 16px; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase;">Athlete</th>
+                                <th style="padding: 10px 16px; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase;">Progress</th>
+                                <th style="padding: 10px 16px; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase;">Activities</th>
+                                <th style="padding: 10px 16px; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-list">
+                            <tr><td colspan="5" style="padding: 20px; text-align: center; color: #64748b; font-size: 13px;">Loading leaderboard...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </main>
+    </div>
+    
+    <script src="js/challenge-details.js?v=1.0.0"></script>
+</body>
+</html>

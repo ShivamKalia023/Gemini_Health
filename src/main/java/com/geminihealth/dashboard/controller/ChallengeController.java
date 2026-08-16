@@ -83,6 +83,7 @@ public class ChallengeController {
             entry.put("progress", progress);
             entry.put("percentage", percentage);
             entry.put("isCompleted", progress >= (challenge.getTargetValue() != null ? challenge.getTargetValue() : Double.MAX_VALUE));
+            entry.put("activityCount", activities.size());
             leaderboard.add(entry);
         }
         

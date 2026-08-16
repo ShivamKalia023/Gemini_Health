@@ -54,3 +54,4 @@ npm-debug.log
 .idea
 *.swp
 
+run-local.bat

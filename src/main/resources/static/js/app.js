@@ -176,14 +176,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 const el = document.createElement('div');
                 el.className = 'modern-challenge-card';
-                if (type === 'active') {
-                    el.style.cursor = 'pointer';
-                    el.addEventListener('click', (e) => {
-                        if(e.target.tagName !== 'BUTTON') {
-                            openChallengeLeaderboard(challenge, currentAthleteId);
-                        }
-                    });
-                }
+                el.style.cursor = 'pointer';
+                el.addEventListener('click', (e) => {
+                    if(!e.target.closest('button') && !e.target.closest('a')) {
+                        window.location.href = 'challenge-details.html?id=' + challenge.id;
+                    }
+                });
                 
                 const bannerStyle = challenge.bannerImage && challenge.bannerImage.trim() !== '' 
                     ? `background-image: url('${challenge.bannerImage}');` 
@@ -1616,7 +1614,12 @@ async function loadChallengesPreview() {
             // Render Horizontal Card
             const el = document.createElement('div');
             el.className = 'challenge-preview-card';
-            el.onclick = () => window.location.href = 'challenges.html?challengeId=' + c.id;
+            el.style.cursor = 'pointer';
+            el.addEventListener('click', (e) => {
+                if(!e.target.closest('button') && !e.target.closest('a')) {
+                    window.location.href = 'challenge-details.html?id=' + c.id;
+                }
+            });
 
             el.innerHTML = `
                 <div class="challenge-card-banner">
