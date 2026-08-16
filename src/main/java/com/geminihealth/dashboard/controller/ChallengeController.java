@@ -98,7 +98,7 @@ public class ChallengeController {
 
     @GetMapping
     public ResponseEntity<?> getAllChallenges() {
-        List<Challenge> challenges = challengeRepository.findAll();
+        List<Challenge> challenges = challengeRepository.findAllByOrderByStartDateAsc();
         return ResponseEntity.ok(challenges);
     }
 

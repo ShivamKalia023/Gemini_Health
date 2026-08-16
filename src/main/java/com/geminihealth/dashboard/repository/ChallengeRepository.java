@@ -10,4 +10,5 @@ import java.util.List;
 public interface ChallengeRepository extends JpaRepository<Challenge, Long> {
     List<Challenge> findByStartDateAfterOrderByStartDateAsc(LocalDateTime date);
     List<Challenge> findByStartDateLessThanEqualAndEndDateGreaterThanOrderByStartDateDesc(LocalDateTime date1, LocalDateTime date2);
+    List<Challenge> findAllByOrderByStartDateAsc();
 }

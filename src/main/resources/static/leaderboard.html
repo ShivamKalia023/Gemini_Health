@@ -3,86 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Fitness Group Tracker - Leaderboard</title>
-    <link rel="stylesheet" href="css/style.css?v=1.0.10">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Gemini Fitness Group Tracker - Challenge Leaderboards</title>
+    <link rel="stylesheet" href="css/style.css?v=1.0.11">
     <script src="js/navbar.js"></script>
     <script src="/js/csrf.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .challenge-directory-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .challenge-directory-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .challenge-directory-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .dir-challenge-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dir-challenge-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+        }
+        
+        .dir-challenge-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: #e95420;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .dir-challenge-card:hover::before {
+            opacity: 1;
+        }
+
+        .dir-challenge-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .dir-challenge-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .dir-challenge-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .badge-active {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-upcoming {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .badge-completed {
+            background-color: rgba(100, 116, 139, 0.1);
+            color: #64748b;
+            border: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        .dir-challenge-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dir-challenge-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+            padding-top: 16px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .dir-stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .dir-stat-label {
+            color: #64748b;
+        }
+
+        .dir-stat-value {
+            font-weight: 600;
+            color: #334155;
+        }
+        
+        .dir-view-action {
+            margin-top: auto;
+            padding-top: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #e95420;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+        }
+    </style>
 </head>
-<body>
+<body style="background-color: #f8fafc;">
     <!-- Top Navigation -->
     <header class="top-nav"></header>
 
     <div class="app-container" style="justify-content: center; padding-top: 40px; display: flex;">
         <main class="dashboard-main" style="width: 100%; max-width: 1200px;">
-            <!-- Champion Banner -->
-            <div class="champion-banner hidden" id="champion-banner" style="margin-bottom: 40px;">
-                <div class="champion-content">
-                    <div class="champion-avatar-container">
-                        <img id="champion-avatar" src="" alt="Champion">
-                        <div class="medal-badge">🏆</div>
-                    </div>
-                    <div class="champion-info">
-                        <span class="champion-label" id="champion-label">■ OVERALL CHAMPION</span>
-                        <h2 id="champion-name">--</h2>
-                        <div class="champion-stats">
-                            <div class="stat">
-                                <span class="label">DISTANCE</span>
-                                <span class="value" id="champion-dist">-- <span class="unit">km</span></span>
-                            </div>
-                            <div class="stat">
-                                <span class="label">ACTIVITIES</span>
-                                <span class="value" id="champion-acts">--</span>
-                            </div>
-                            <div class="stat">
-                                <span class="label">STREAK</span>
-                                <span class="value">0 <span class="unit">days</span></span>
-                            </div>
-                        </div>
-                    </div>
+            <section class="leaderboard-section" style="width: 100%; height: auto; background: transparent; box-shadow: none; padding: 0;">
+                <div class="section-header" style="margin-bottom: 8px;">
+                    <h3 style="font-size: 1.5rem; color: #1e293b; font-weight: 700; margin-bottom: 4px;">Challenge Leaderboards</h3>
+                    <span class="section-subtitle" style="color: #64748b; font-size: 0.9rem;">SELECT A CHALLENGE TO VIEW ITS LEADERBOARD</span>
                 </div>
-                <div class="champion-rank">1</div>
-            </div>
-
-            <!-- Leaderboard -->
-            <section class="leaderboard-section" id="leaderboard-section" style="width: 100%; height: auto;">
-                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                    <div>
-                        <h3 id="leaderboard-title">Global Leaderboard</h3>
-                        <span class="section-subtitle" id="leaderboard-subtitle">TOP PERFORMERS · ALL TIME</span>
-                    </div>
-                    <div class="category-filter">
-                        <select id="category-select" class="modern-select">
-                            <option value="RUN">🏃 Running</option>
-                            <option value="RIDE">🚴 Cycling</option>
-                            <option value="WALK">🚶 Walking</option>
-                            <option value="HIKE">🥾 Hiking</option>
-                            <option value="SWIM">🏊 Swimming</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="leaderboard-table-container">
-                    <table class="leaderboard-table">
-                        <thead>
-                            <tr>
-                                <th>RANK</th>
-                                <th>ATHLETE</th>
-                                <th style="text-align: right;" id="col-distance">DISTANCE</th>
-                                <th style="text-align: right;" id="col-activities">ACTIVITIES</th>
-                                <th style="text-align: right;" id="col-average">AVERAGE DISTANCE</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboard-list">
-                            <tr><td colspan="4" class="loading-text">Loading leaderboard...</td></tr>
-                        </tbody>
-                    </table>
+                
+                <div id="challenge-directory-container" class="challenge-directory-grid">
+                    <!-- Challenges will be dynamically loaded here -->
+                    <div class="loading-text" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #64748b;">Loading challenges...</div>
                 </div>
             </section>
         </main>
     </div>
     
-    <script src="js/charts.js?v=1.0.1"></script>
-    <script src="js/app.js?v=1.0.16"></script>
+    <script src="js/app.js?v=1.0.17"></script>
+    <script src="js/leaderboards-directory.js?v=1.0.0"></script>
 </body>
 </html>

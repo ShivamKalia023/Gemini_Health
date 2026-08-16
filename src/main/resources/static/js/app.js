@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `${day} ${month} ${year} • ${hoursStr}:${minutes} ${ampm}`;
     };
 
-    async function loadChallenges(type = 'upcoming') {
+    async function loadChallenges() {
         if (!challengesList) return;
         
         challengesList.innerHTML = '<div class="loading-text">Loading challenges...</div>';
@@ -116,54 +116,100 @@ document.addEventListener('DOMContentLoaded', async () => {
         const currentAthleteId = window.currentUser ? window.currentUser.id : null;
 
         try {
-            const res = await fetch(`/api/challenges/${type}`);
+            const res = await fetch(`/api/challenges`);
             const visibleChallenges = await res.json();
             
             if (visibleChallenges.length === 0) {
-                challengesList.innerHTML = `<div class="loading-text" style="color: #666; font-size: 14px; text-align: center; padding: 20px;">No ${type} challenges found.</div>`;
+                challengesList.innerHTML = `<div class="loading-text" style="color: #666; font-size: 14px; text-align: center; padding: 20px;">No challenges available at the moment.</div>`;
                 return;
             }
+
+            const now = new Date();
+            
+            // 1. Compute stateType for each challenge
+            visibleChallenges.forEach(challenge => {
+                const cStart = challenge.startDate ? new Date(challenge.startDate) : null;
+                const cEnd = challenge.endDate ? new Date(challenge.endDate) : null;
+
+                challenge._stateType = 'upcoming';
+                if (cStart && cEnd) {
+                    if (now >= cStart && now <= cEnd) challenge._stateType = 'active';
+                    else if (now > cEnd) challenge._stateType = 'completed';
+                }
+            });
+
+            // 2. Sort challenges: active -> upcoming -> completed
+            visibleChallenges.sort((a, b) => {
+                const order = { 'active': 1, 'upcoming': 2, 'completed': 3 };
+                if (order[a._stateType] !== order[b._stateType]) {
+                    return order[a._stateType] - order[b._stateType];
+                }
+                
+                const startA = a.startDate ? new Date(a.startDate).getTime() : 0;
+                const startB = b.startDate ? new Date(b.startDate).getTime() : 0;
+                
+                if (a._stateType === 'completed') {
+                    return startB - startA; // latest start date first for closed
+                } else {
+                    return startA - startB; // earliest start date first for active/upcoming
+                }
+            });
             
             challengesList.innerHTML = '';
             visibleChallenges.forEach(challenge => {
                 const isParticipating = currentAthleteId && challenge.participants && challenge.participants.some(p => p.id === currentAthleteId);
                 const participantCount = challenge.participants ? challenge.participants.length : 0;
                 
-                let badgeStatus = challenge.status || (type === 'active' ? 'Active' : 'Upcoming');
-                let statusColor = type === 'active' ? '#10b981' : '#3b82f6';
-                let btnHtml = '';
+                const rStart = challenge.registrationStartDate ? new Date(challenge.registrationStartDate) : null;
+                const rEnd = challenge.registrationEndDate ? new Date(challenge.registrationEndDate) : null;
 
+                let stateType = challenge._stateType;
+
+                let badgeStatus = '';
+                let statusColor = '#3b82f6';
+                if (stateType === 'active') {
+                    badgeStatus = 'ACTIVE';
+                    statusColor = '#10b981';
+                } else if (stateType === 'upcoming') {
+                    badgeStatus = 'UPCOMING';
+                    statusColor = '#3b82f6';
+                } else {
+                    badgeStatus = 'COMPLETED';
+                    statusColor = '#94a3b8';
+                }
+                
+                let btnHtml = '';
                 let regStateText = '';
                 let regStatusDotColor = '#cbd5e1';
                 let buttonDisabled = false;
                 let buttonText = isParticipating ? 'Leave Challenge' : 'Participate';
-                let showButton = type === 'upcoming'; 
+                let showButton = (stateType === 'upcoming' || stateType === 'active');
 
-                const now = new Date();
-                const rStart = challenge.registrationStartDate ? new Date(challenge.registrationStartDate) : null;
-                const rEnd = challenge.registrationEndDate ? new Date(challenge.registrationEndDate) : null;
-                
-                if (type === 'upcoming') {
-                    if (rStart && rEnd) {
-                        if (now < rStart) {
-                            regStateText = 'Registration Not Open Yet';
-                            regStatusDotColor = '#fbbf24';
-                            buttonDisabled = true;
-                        } else if (now >= rStart && now < rEnd) {
-                            regStateText = 'Registration Open';
-                            regStatusDotColor = '#10b981';
-                        } else {
-                            regStateText = 'Registration Closed';
-                            regStatusDotColor = '#ef4444';
-                            buttonDisabled = true;
-                        }
+                if (rStart && rEnd) {
+                    if (now < rStart) {
+                        regStateText = 'Registration Not Open Yet';
+                        regStatusDotColor = '#fbbf24';
+                        buttonDisabled = true;
+                    } else if (now >= rStart && now <= rEnd) {
+                        regStateText = 'Registration Open';
+                        regStatusDotColor = '#10b981';
                     } else {
+                        regStateText = 'Registration Closed';
+                        regStatusDotColor = '#ef4444';
+                        if (stateType === 'upcoming') buttonDisabled = true;
+                    }
+                } else {
+                    if (stateType === 'upcoming') {
                         regStateText = 'Upcoming';
                         regStatusDotColor = '#3b82f6';
+                    } else if (stateType === 'active') {
+                        regStateText = 'Challenge Active';
+                        regStatusDotColor = '#10b981';
+                    } else {
+                        regStateText = 'Challenge Ended';
+                        regStatusDotColor = '#94a3b8';
+                        buttonDisabled = true;
                     }
-                } else if (type === 'active') {
-                    regStateText = 'Challenge Active';
-                    regStatusDotColor = '#10b981';
                 }
 
                 if (showButton) {
@@ -246,7 +292,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="cc-dot" style="background-color: ${regStatusDotColor};"></div>
                             <span style="color: ${regStatusDotColor};">${regStateText}</span>
                         </div>
-                        ${type === 'active' ? '<div style="margin-top: 10px; color: #94a3b8; font-size: 12px; font-weight: 600;">View Leaderboard &rarr;</div>' : ''}
+                        <div style="margin-top: 10px; color: #94a3b8; font-size: 12px; font-weight: 600;">View Leaderboard &rarr;</div>
                     </div>
                 `;
                 challengesList.appendChild(el);
