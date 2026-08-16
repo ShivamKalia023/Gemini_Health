@@ -237,9 +237,10 @@ public class AthleteController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAthlete(@PathVariable Long id, 
-                                           @CookieValue(value = "admin_token", required = false) String adminToken,
                                            @CookieValue(value = "athlete_id", required = false) String athleteIdCookie) {
-        boolean isAdmin = "true".equals(adminToken);
+        boolean isAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null && 
+                          org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                          .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         boolean isSelf = athleteIdCookie != null && athleteIdCookie.equals(id.toString());
 
         if (!isAdmin && !isSelf) {
@@ -262,9 +263,10 @@ public class AthleteController {
 
     @PostMapping("/{id}/strava/sync")
     public ResponseEntity<?> syncStravaActivities(@PathVariable Long id,
-                                                  @CookieValue(value = "admin_token", required = false) String adminToken,
                                                   @CookieValue(value = "athlete_id", required = false) String athleteIdCookie) {
-        boolean isAdmin = "true".equals(adminToken);
+        boolean isAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null && 
+                          org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                          .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         boolean isSelf = athleteIdCookie != null && athleteIdCookie.equals(id.toString());
 
         if (!isAdmin && !isSelf) {

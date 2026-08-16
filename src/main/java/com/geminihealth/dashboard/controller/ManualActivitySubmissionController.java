@@ -70,13 +70,7 @@ public class ManualActivitySubmissionController {
     // --- ADMIN ENDPOINTS ---
 
     @GetMapping("/admin/activity-submissions/pending")
-    public ResponseEntity<?> getPendingSubmissions(
-            @CookieValue(value = "admin_token", required = false) String adminToken) {
-        
-        if (!"true".equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden"));
-        }
-
+    public ResponseEntity<?> getPendingSubmissions() {
         try {
             List<ManualActivitySubmission> submissions = submissionService.getPendingSubmissions();
             return ResponseEntity.ok(submissions);
@@ -88,13 +82,8 @@ public class ManualActivitySubmissionController {
     @PostMapping("/admin/activity-submissions/{id}/approve")
     public ResponseEntity<?> approveSubmission(
             @PathVariable Long id,
-            @CookieValue(value = "admin_token", required = false) String adminToken,
             @CookieValue(value = "athlete_id", required = false) String adminAthleteId) {
         
-        if (!"true".equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden"));
-        }
-
         try {
             String reviewerId = adminAthleteId != null ? adminAthleteId : "admin";
             submissionService.approveSubmission(id, reviewerId);
@@ -110,13 +99,8 @@ public class ManualActivitySubmissionController {
     public ResponseEntity<?> rejectSubmission(
             @PathVariable Long id,
             @RequestBody(required = false) Map<String, String> payload,
-            @CookieValue(value = "admin_token", required = false) String adminToken,
             @CookieValue(value = "athlete_id", required = false) String adminAthleteId) {
         
-        if (!"true".equals(adminToken)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Forbidden"));
-        }
-
         try {
             String reason = payload != null ? payload.get("reason") : null;
             String reviewerId = adminAthleteId != null ? adminAthleteId : "admin";

@@ -104,21 +104,20 @@ public class FeedController {
     @DeleteMapping("/{postId}")
     public ResponseEntity<?> deletePost(
             @PathVariable Long postId,
-            @CookieValue(value = "admin_token", required = false) String adminToken,
             @CookieValue(value = "athlete_id", required = false) String athleteIdCookie) {
         
         AthleteProfile athlete = getAuthenticatedAthlete(athleteIdCookie);
-        if (athlete == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        if (athlete == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
+        boolean isAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null && 
+                          org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                          .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         Optional<Post> postOpt = postRepository.findById(postId);
         if (postOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
         Post post = postOpt.get();
-        boolean isAdmin = "true".equals(adminToken) || athlete.getRole() == AthleteProfile.Role.ADMIN;
         boolean isOwner = post.getAthlete().getId().equals(athlete.getId());
         
         if (!isOwner && !isAdmin) {
@@ -209,24 +208,24 @@ public class FeedController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedComment);
     }
 
-    @DeleteMapping("/comments/{commentId}")
+    @DeleteMapping("/{id}/comments/{commentId}")
     public ResponseEntity<?> deleteComment(
+            @PathVariable Long id,
             @PathVariable Long commentId,
-            @CookieValue(value = "admin_token", required = false) String adminToken,
             @CookieValue(value = "athlete_id", required = false) String athleteIdCookie) {
         
         AthleteProfile athlete = getAuthenticatedAthlete(athleteIdCookie);
-        if (athlete == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        if (athlete == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
+        boolean isAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null && 
+                          org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                          .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         Optional<Comment> commentOpt = commentRepository.findById(commentId);
         if (commentOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
         Comment comment = commentOpt.get();
-        boolean isAdmin = "true".equals(adminToken) || athlete.getRole() == AthleteProfile.Role.ADMIN;
         boolean isOwner = comment.getAthlete().getId().equals(athlete.getId());
 
         if (!isOwner && !isAdmin) {
