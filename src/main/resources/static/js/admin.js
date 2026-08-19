@@ -290,8 +290,6 @@ function openChallengeModal(challenge = null) {
         
         document.getElementById('challenge-start').value = formatDate(challenge.startDate);
         document.getElementById('challenge-end').value = formatDate(challenge.endDate);
-        document.getElementById('challenge-reg-start').value = formatDate(challenge.registrationStartDate);
-        document.getElementById('challenge-reg-end').value = formatDate(challenge.registrationEndDate);
         document.getElementById('challenge-banner').value = challenge.bannerImage || '';
         document.getElementById('challenge-status').value = challenge.status || 'Draft';
     } else {
@@ -325,8 +323,6 @@ document.getElementById('challenge-form')?.addEventListener('submit', (e) => {
         unit: document.getElementById('challenge-unit').value,
         startDate: formatForBackend(document.getElementById('challenge-start').value),
         endDate: formatForBackend(document.getElementById('challenge-end').value),
-        registrationStartDate: formatForBackend(document.getElementById('challenge-reg-start').value),
-        registrationEndDate: formatForBackend(document.getElementById('challenge-reg-end').value),
         bannerImage: document.getElementById('challenge-banner').value,
         status: document.getElementById('challenge-status').value,
         isPublic: true

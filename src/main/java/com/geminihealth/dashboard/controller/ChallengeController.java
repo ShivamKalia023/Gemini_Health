@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/challenges")
@@ -146,9 +145,6 @@ public class ChallengeController {
         if (challengeDetails.getBannerImage() != null) challenge.setBannerImage(challengeDetails.getBannerImage());
         if (challengeDetails.getIsPublic() != null) challenge.setIsPublic(challengeDetails.getIsPublic());
 
-        if (challengeDetails.getRegistrationStartDate() != null) challenge.setRegistrationStartDate(challengeDetails.getRegistrationStartDate());
-        if (challengeDetails.getRegistrationEndDate() != null) challenge.setRegistrationEndDate(challengeDetails.getRegistrationEndDate());
-
         ResponseEntity<?> dateValidationError = validateChallengeDates(challenge);
         if (dateValidationError != null) {
             return dateValidationError;
@@ -178,17 +174,9 @@ public class ChallengeController {
     }
 
     private ResponseEntity<?> validateChallengeDates(Challenge challenge) {
-        LocalDateTime rStart = challenge.getRegistrationStartDate();
-        LocalDateTime rEnd = challenge.getRegistrationEndDate();
         LocalDateTime cStart = challenge.getStartDate();
         LocalDateTime cEnd = challenge.getEndDate();
 
-        if (rStart != null && rEnd != null && !rStart.isBefore(rEnd)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Registration Start Date must be before Registration End Date."));
-        }
-        if (rEnd != null && cStart != null && rEnd.isAfter(cStart)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Registration End Date must be on or before Challenge Start Date."));
-        }
         if (cStart != null && cEnd != null && !cStart.isBefore(cEnd)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Challenge Start Date must be before Challenge End Date."));
         }
@@ -230,21 +218,12 @@ public class ChallengeController {
 
         Challenge challenge = challengeOpt.get();
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime rStart = challenge.getRegistrationStartDate();
-        LocalDateTime rEnd = challenge.getRegistrationEndDate();
         
-        if (rStart == null || rEnd == null) {
-            // Fallback for legacy challenges without registration dates, but still shouldn't join if not active or beyond end
-            if (!"Active".equalsIgnoreCase(challenge.getStatus())) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Cannot join a challenge that is not active."));
-            }
-        } else {
-            if (now.isBefore(rStart)) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Registration has not opened yet."));
-            }
-            if (now.isAfter(rEnd)) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Registration is closed."));
-            }
+        if (challenge.getStartDate() != null && now.isBefore(challenge.getStartDate())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Challenge has not started yet."));
+        }
+        if (challenge.getEndDate() != null && now.isAfter(challenge.getEndDate())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Challenge has already ended."));
         }
 
         challenge.addParticipant(athleteOpt.get());
@@ -277,7 +256,8 @@ public class ChallengeController {
         }
 
         Challenge challenge = challengeOpt.get();
-        if ("Completed".equalsIgnoreCase(challenge.getStatus())) {
+        LocalDateTime now = LocalDateTime.now();
+        if (challenge.getEndDate() != null && now.isAfter(challenge.getEndDate())) {
              return ResponseEntity.badRequest().body(Map.of("error", "Cannot leave an ended challenge."));
         }
 

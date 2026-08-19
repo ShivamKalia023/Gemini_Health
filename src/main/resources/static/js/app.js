@@ -160,8 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const isParticipating = currentAthleteId && challenge.participants && challenge.participants.some(p => p.id === currentAthleteId);
                 const participantCount = challenge.participants ? challenge.participants.length : 0;
                 
-                const rStart = challenge.registrationStartDate ? new Date(challenge.registrationStartDate) : null;
-                const rEnd = challenge.registrationEndDate ? new Date(challenge.registrationEndDate) : null;
+                
 
                 let stateType = challenge._stateType;
 
@@ -244,20 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     <div class="cc-middle">
                         <div class="cc-timeline">
-                            <div class="cc-timeline-item">
-                                <div class="cc-icon">📅</div>
-                                <div class="cc-info">
-                                    <span class="cc-label">Registration Opens</span>
-                                    <span class="cc-value">${formatDateTime(challenge.registrationStartDate)}</span>
-                                </div>
-                            </div>
-                            <div class="cc-timeline-item">
-                                <div class="cc-icon">🔒</div>
-                                <div class="cc-info">
-                                    <span class="cc-label">Registration Closes</span>
-                                    <span class="cc-value">${formatDateTime(challenge.registrationEndDate)}</span>
-                                </div>
-                            </div>
+                            
                             <div class="cc-timeline-item">
                                 <div class="cc-icon">🚩</div>
                                 <div class="cc-info">
@@ -1617,15 +1603,7 @@ async function loadChallengesPreview() {
             let isRegOpen = false;
             let isRegClosed = false;
             
-            if (isUpcoming) {
-                if (c.registrationStartDate && now < new Date(c.registrationStartDate)) {
-                    isRegOpeningSoon = true;
-                } else if (c.registrationEndDate && now > new Date(c.registrationEndDate)) {
-                    isRegClosed = true;
-                } else {
-                    isRegOpen = true;
-                }
-            }
+            
             
             let ctaText = 'View Challenge';
             let ctaClass = 'btn-primary';

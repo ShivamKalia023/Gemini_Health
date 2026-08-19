@@ -37,12 +37,6 @@ public class Challenge {
     @Column(name = "end_date")
     private LocalDateTime endDate;
 
-    @Column(name = "registration_start_date")
-    private LocalDateTime registrationStartDate;
-
-    @Column(name = "registration_end_date")
-    private LocalDateTime registrationEndDate;
-
     private String status = "Draft"; // Draft, Scheduled, Active, Completed, Cancelled
 
     @Column(name = "created_by")
@@ -99,12 +93,6 @@ public class Challenge {
 
     public LocalDateTime getEndDate() { return endDate; }
     public void setEndDate(LocalDateTime endDate) { this.endDate = endDate; }
-
-    public LocalDateTime getRegistrationStartDate() { return registrationStartDate; }
-    public void setRegistrationStartDate(LocalDateTime registrationStartDate) { this.registrationStartDate = registrationStartDate; }
-
-    public LocalDateTime getRegistrationEndDate() { return registrationEndDate; }
-    public void setRegistrationEndDate(LocalDateTime registrationEndDate) { this.registrationEndDate = registrationEndDate; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

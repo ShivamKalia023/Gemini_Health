@@ -27,8 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const now = new Date();
         const start = new Date(challenge.startDate);
         const end = new Date(challenge.endDate);
-        const regStart = new Date(challenge.registrationStartDate);
-        const regEnd = new Date(challenge.registrationEndDate);
+        
         
         const isCompleted = now > end;
         const isActive = now >= start && now <= end;
@@ -39,12 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         else if (isActive) { statusColor = '#10b981'; badgeStatus = 'ACTIVE'; }
         else { statusColor = '#f59e0b'; badgeStatus = 'UPCOMING'; }
         
-        const regOpen = now >= regStart && now <= regEnd;
-        let regStateText = '';
-        let regStatusDotColor = '#94a3b8';
-        if (now < regStart) { regStateText = 'Registration Opens Soon'; regStatusDotColor = '#f59e0b'; }
-        else if (regOpen) { regStateText = 'Registration Open'; regStatusDotColor = '#10b981'; }
-        else { regStateText = 'Registration Closed'; regStatusDotColor = '#ef4444'; }
+        
         
         const isParticipating = currentAthleteId && challenge.participants && challenge.participants.some(p => p.id === currentAthleteId);
         const participantCount = challenge.participants ? challenge.participants.length : 0;
@@ -112,8 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div style="flex: 1; min-width: 160px;">
                                 <h5 style="color: #475569; font-size: 11px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Schedule</h5>
                                 <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; font-size: 12px;">
-                                    <span style="color: #64748b;">Opens:</span> <span style="color: #1e293b; font-weight: 500;">${formatDateTimeCompact(challenge.registrationStartDate)}</span>
-                                    <span style="color: #64748b;">Closes:</span> <span style="color: #1e293b; font-weight: 500;">${formatDateTimeCompact(challenge.registrationEndDate)}</span>
+                                    
                                     <span style="color: #64748b;">Starts:</span> <span style="color: #1e293b; font-weight: 500;">${formatDateTimeCompact(challenge.startDate)}</span>
                                     <span style="color: #64748b;">Ends:</span> <span style="color: #1e293b; font-weight: 500;">${formatDateTimeCompact(challenge.endDate)}</span>
                                 </div>
@@ -122,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <div>
                                     <h5 style="color: #475569; font-size: 11px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Status</h5>
                                     <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; font-size: 12px;">
-                                        <span style="color: #64748b;">Registration:</span> <span style="color: ${regStatusDotColor}; font-weight: 600;">${regStateText}</span>
+                                        
                                         <span style="color: #64748b;">Participants:</span> <span style="color: #1e293b; font-weight: 600;" id="participant-count-${challenge.id}">${participantCount}</span>
                                         <span style="color: #64748b;">Your Status:</span> <span style="color: ${isParticipating ? '#10b981' : '#64748b'}; font-weight: 500;">${isParticipating ? 'Registered' : 'Not Registered'}</span>
                                     </div>
