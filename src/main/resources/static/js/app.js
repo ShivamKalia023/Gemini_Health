@@ -184,20 +184,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let buttonText = isParticipating ? 'Leave Challenge' : 'Participate';
                 let showButton = (stateType === 'upcoming' || stateType === 'active');
 
-                if (rStart && rEnd) {
-                    if (now < rStart) {
-                        regStateText = 'Registration Not Open Yet';
-                        regStatusDotColor = '#fbbf24';
-                        buttonDisabled = true;
-                    } else if (now >= rStart && now <= rEnd) {
-                        regStateText = 'Registration Open';
-                        regStatusDotColor = '#10b981';
-                    } else {
-                        regStateText = 'Registration Closed';
-                        regStatusDotColor = '#ef4444';
-                        if (stateType === 'upcoming') buttonDisabled = true;
-                    }
-                } else {
                     if (stateType === 'upcoming') {
                         regStateText = 'Upcoming';
                         regStatusDotColor = '#3b82f6';
@@ -209,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         regStatusDotColor = '#94a3b8';
                         buttonDisabled = true;
                     }
-                }
+
 
                 if (showButton) {
                     btnHtml = `
@@ -1598,10 +1584,7 @@ async function loadChallengesPreview() {
             const participantsCount = c.participants ? c.participants.length : (c.participantCount || 0);
             const timeRemaining = calculateTimeRemaining(isActive || isCompleted ? c.endDate : c.startDate, isUpcoming, isCompleted);
             
-            // Registration CTA Logic
-            let isRegOpeningSoon = false;
-            let isRegOpen = false;
-            let isRegClosed = false;
+
             
             
             
@@ -1617,18 +1600,9 @@ async function loadChallengesPreview() {
                 ctaText = 'View Challenge';
                 ctaClass = 'btn-success';
             } else if (isUpcoming) {
-                if (isRegOpeningSoon) {
-                    ctaText = 'Registration Opening Soon';
-                    ctaClass = 'btn-disabled-blue';
-                    ctaDisabled = true;
-                } else if (isRegClosed) {
-                    ctaText = 'Registration Closed';
-                    ctaClass = 'btn-disabled';
-                    ctaDisabled = true;
-                } else {
-                    ctaText = 'Register';
-                    ctaClass = 'btn-primary';
-                }
+                ctaText = 'Upcoming';
+                ctaClass = 'btn-disabled-blue';
+                ctaDisabled = true;
             }
 
             const ctaHtml = ctaDisabled 

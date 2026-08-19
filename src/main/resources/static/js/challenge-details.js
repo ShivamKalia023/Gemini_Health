@@ -54,8 +54,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 buttonText = 'Leave Challenge';
                 if (isActive) buttonDisabled = true;
             } else {
-                if (!regOpen) {
-                    buttonText = now < regStart ? 'Registration Not Open' : 'Registration Closed';
+                if (!isActive) {
+                    buttonText = 'Not Active';
                     buttonDisabled = true;
                 }
             }
